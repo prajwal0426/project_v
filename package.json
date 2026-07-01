@@ -1,0 +1,15 @@
+{
+  "name": "vertex-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VERTEX full-stack learning and earning platform",
+  "scripts": {
+    "install:all": "npm install --prefix client && npm install --prefix server",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm run build --prefix client",
+    "start": "npm start --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
