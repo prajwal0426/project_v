@@ -82,6 +82,31 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function loginWithGoogle(tokenResponse) {
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      const response = await authApi.loginWithGoogle(tokenResponse);
+      const nextSession = {
+        token: response?.token || '',
+        user: {
+          ...(response?.account || {}),
+          role: 'user'
+        }
+      };
+
+      setSession(nextSession);
+      window.localStorage.setItem('vertex.session', JSON.stringify(nextSession));
+      return nextSession.user;
+    } catch (error) {
+      setAuthError(error.message || 'Google Sign-In failed');
+      throw error;
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
   function logout() {
     setSession(null);
     setAuthError('');
@@ -89,7 +114,7 @@ export function AuthProvider({ children }) {
   }
 
   const value = useMemo(
-    () => ({ user, token, login, register, logout, authError, authLoading }),
+    () => ({ user, token, login, register, loginWithGoogle, logout, authError, authLoading }),
     [user, token, authError, authLoading]
   );
 

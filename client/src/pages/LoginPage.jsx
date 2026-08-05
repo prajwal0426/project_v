@@ -14,7 +14,7 @@ function landingFor(role) {
 }
 
 export default function LoginPage({ bright, setBright, onAuthenticated }) {
-  const { login, register, authError, authLoading } = useAuth();
+  const { login, register, loginWithGoogle, authError, authLoading } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('register');
   const [role, setRole] = useState('user');
@@ -81,22 +81,18 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
     flow: "implicit",
 
     onSuccess: async (tokenResponse) => {
-        const res = await fetch(`${API_BASE_URL}/auth/google`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(tokenResponse),
-        });
-
-        const data = await res.json();
-        console.log(data);
+      try {
+        const user = await loginWithGoogle(tokenResponse);
+        onAuthenticated(landingFor(user?.role || 'user'));
+      } catch (err) {
+        console.error("Google Login Success Callback Error:", err);
+      }
     },
 
     onError: () => {
         console.log("Google Login Failed");
     },
-});
+  });
 
   function redirectToOAuth(event, provider) {
     event.preventDefault();

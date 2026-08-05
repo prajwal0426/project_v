@@ -115,23 +115,40 @@ export async function appleLogin(_req, res) {
 
 export async function googleLogin(req, res, next) {
   try {
-    const { credential } = req.body;
+    const { credential, access_token } = req.body;
 
-    if (!credential) {
+    if (!credential && !access_token) {
       return res.status(400).json({
-        message: 'Google credential is required'
+        message: 'Google credential or access token is required'
       });
     }
 
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
+    let email, name;
 
-    const payload = ticket.getPayload();
+    if (credential) {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID
+      });
 
-    const email = payload.email;
-    const name = payload.name;
+      const payload = ticket.getPayload();
+      email = payload.email;
+      name = payload.name;
+    } else {
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+          Authorization: `Bearer ${access_token}`
+        }
+      });
+      if (!response.ok) {
+        return res.status(400).json({
+          message: 'Failed to verify Google access token'
+        });
+      }
+      const payload = await response.json();
+      email = payload.email;
+      name = payload.name;
+    }
 
     let result = await query(
       `SELECT * FROM users WHERE email = $1`,
