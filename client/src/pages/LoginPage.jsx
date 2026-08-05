@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Apple, Eye, EyeOff, LockKeyhole, Moon, Sun, X } from 'lucide-react';
 import LegalDocumentModal from '../components/LegalDocumentModal.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -97,6 +97,12 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
         console.log("Google Login Failed");
     },
 });
+
+  function redirectToOAuth(event, provider) {
+    event.preventDefault();
+    console.log(`OAuth login with ${provider} is not configured yet.`);
+    alert(`OAuth login with ${provider} is not configured yet.`);
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
