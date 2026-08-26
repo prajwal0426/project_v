@@ -5,11 +5,6 @@ const AuthContext = createContext(null);
 
 function readStoredSession() {
   try {
-    const adminSession = window.sessionStorage.getItem('vertex.admin.session');
-    if (adminSession) {
-      return JSON.parse(adminSession);
-    }
-
     const stored = window.localStorage.getItem('vertex.session');
     return stored ? JSON.parse(stored) : null;
   } catch {
@@ -44,32 +39,6 @@ export function AuthProvider({ children }) {
       return nextSession.user;
     } catch (error) {
       setAuthError(error.message || 'Unable to sign in');
-      throw error;
-    } finally {
-      setAuthLoading(false);
-    }
-  }
-
-  async function loginAdmin({ username, password }) {
-    setAuthLoading(true);
-    setAuthError('');
-
-    try {
-      const response = await authApi.adminLogin({ username, password });
-      const nextSession = {
-        token: response?.token || '',
-        user: {
-          ...(response?.account || {}),
-          role: 'admin'
-        }
-      };
-
-      setSession(nextSession);
-      window.localStorage.removeItem('vertex.session');
-      window.sessionStorage.setItem('vertex.admin.session', JSON.stringify(nextSession));
-      return nextSession.user;
-    } catch (error) {
-      setAuthError(error.message || 'Invalid admin credentials');
       throw error;
     } finally {
       setAuthLoading(false);
@@ -113,11 +82,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-<<<<<<< HEAD
-  async function logout() {
-    const activeToken = token;
-    const activeRole = user?.role;
-=======
   async function loginWithGoogle(tokenResponse) {
     setAuthLoading(true);
     setAuthError('');
@@ -144,27 +108,13 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
->>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
     setSession(null);
     setAuthError('');
     window.localStorage.removeItem('vertex.session');
-    window.sessionStorage.removeItem('vertex.admin.session');
-
-    if (activeRole === 'admin' && activeToken) {
-      try {
-        await authApi.adminLogout(activeToken);
-      } catch {
-        // Local logout should still complete if the stateless API token is already invalid.
-      }
-    }
   }
 
   const value = useMemo(
-<<<<<<< HEAD
-    () => ({ user, token, login, loginAdmin, register, logout, authError, authLoading }),
-=======
     () => ({ user, token, login, register, loginWithGoogle, logout, authError, authLoading }),
->>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
     [user, token, authError, authLoading]
   );
 

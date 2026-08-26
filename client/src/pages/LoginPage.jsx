@@ -4,20 +4,17 @@ import LegalDocumentModal from '../components/LegalDocumentModal.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { API_BASE_URL } from '../services/api.js';
 import { LEGAL_VERSIONS } from '../services/legal.js';
+import { useGoogleLogin } from "@react-oauth/google";
 
 
 function landingFor(role) {
   if (role === 'company') return 'company';
+  if (role === 'admin') return 'admin';
   return 'dashboard';
 }
 
-<<<<<<< HEAD
-export default function LoginPage({ bright, setBright, onAuthenticated, onAdminLogin }) {
-  const { login, register, authError, authLoading } = useAuth();
-=======
 export default function LoginPage({ bright, setBright, onAuthenticated }) {
   const { login, register, loginWithGoogle, authError, authLoading } = useAuth();
->>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('register');
   const [role, setRole] = useState('user');
@@ -34,7 +31,7 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
   const legalReturnFocusRef = useRef(null);
 
   const isRegister = authTab === 'register';
-  const roles = ['user', 'company'];
+  const roles = isRegister ? ['user', 'company'] : ['user', 'company', 'admin'];
   const legalAccepted = privacyAccepted && termsAccepted && ageConfirmed;
 
 
@@ -62,11 +59,17 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
 
   function openAuth() {
     setAuthOpen(true);
+    if (authTab === 'register' && role === 'admin') {
+      setRole('user');
+    }
   }
 
   function switchAuthTab(nextTab) {
     setAuthTab(nextTab);
     setValidationMessages([]);
+    if (nextTab === 'register' && role === 'admin') {
+      setRole('user');
+    }
   }
 
   function openLegalDocument(event, documentType) {
@@ -74,16 +77,9 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
     legalReturnFocusRef.current = event.currentTarget;
     setLegalDocument(documentType);
   }
+  const googleLogin = useGoogleLogin({
+    flow: "implicit",
 
-<<<<<<< HEAD
-  function redirectToOAuth(event, provider) {
-    event.stopPropagation();
-    window.location.href = `${API_BASE_URL}/auth/${provider}`;
-  }
-
-  function googleLogin(event) {
-    redirectToOAuth(event, 'google');
-=======
     onSuccess: async (tokenResponse) => {
       try {
         const user = await loginWithGoogle(tokenResponse);
@@ -102,10 +98,8 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
     event.preventDefault();
     console.log(`OAuth login with ${provider} is not configured yet.`);
     alert(`OAuth login with ${provider} is not configured yet.`);
->>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
   }
 
-  
   async function handleSubmit(event) {
     event.preventDefault();
     const missing = [];
@@ -139,7 +133,6 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
       // AuthContext owns the visible error message.
     }
   }
-   
 
   return (
     <section className={authOpen ? 'auth-shell auth-shell-form' : 'auth-shell'}>
@@ -150,7 +143,6 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
           <button type="button">about</button>
           <button type="button">contact</button>
           <button type="button" onClick={openAuth}>login/register</button>
-          <button type="button" onClick={onAdminLogin}>admin login</button>
         </nav>
       </header>
 
@@ -159,29 +151,27 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
       </button>
 
       <div className="auth-landing">
-        <h1>HI THERE, WELCOME TO<br /> VERTEX </h1>
+        <h1>HI THERE, WELCOME TO<br />VERTEX</h1>
         <div className="login-logo" aria-label="VERTEX">
           <img className="login-hero-image" src="/login-logo.png" alt="VERTEX" />
         </div>
         <div className="social-login">
          
-     <div className="google-button">
-      <button
+        <button
     className="google"
     type="button"
-    onClick={googleLogin}
+    onClick={() => googleLogin()}
 >
     <img
         src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
         alt="Google"
         width="22"
     />
-  
+
     Continue with Google
 </button>
- 
-</div>
-    
+
+
           <button className="microsoft" type="button" onClick={(event) => redirectToOAuth(event, 'microsoft')}><span>■</span>Continue with Microsoft</button>
           <button className="apple" type="button" onClick={(event) => redirectToOAuth(event, 'apple')}><Apple size={22} />Continue with Apple</button>
         </div>
@@ -198,7 +188,7 @@ export default function LoginPage({ bright, setBright, onAuthenticated }) {
               <button className={isRegister ? 'active' : ''} type="button" onClick={() => switchAuthTab('register')}>Register</button>
             </div>
             <h2 id="auth-title">{isRegister ? 'Create VERTEX Account' : 'Sign in to VERTEX'}</h2>
-            <p>{isRegister ? 'Register as a user or company.' : 'Use your registered user or company account.'}</p>
+            <p>{isRegister ? 'Register as a user or company.' : 'Use your registered user, company, or admin account.'}</p>
             {isRegister ? (
               <p className="legal-inline-links">
                 Read the <button type="button" onClick={(event) => openLegalDocument(event, 'privacy')}>Privacy Policy</button> and <button type="button" onClick={(event) => openLegalDocument(event, 'terms')}>Terms & Conditions</button>.
