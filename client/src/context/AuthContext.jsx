@@ -113,11 +113,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-<<<<<<< HEAD
-  async function logout() {
-    const activeToken = token;
-    const activeRole = user?.role;
-=======
   async function loginWithGoogle(tokenResponse) {
     setAuthLoading(true);
     setAuthError('');
@@ -143,8 +138,9 @@ export function AuthProvider({ children }) {
     }
   }
 
-  function logout() {
->>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
+  async function logout() {
+    const activeToken = token;
+    const activeRole = user?.role;
     setSession(null);
     setAuthError('');
     window.localStorage.removeItem('vertex.session');
@@ -160,11 +156,7 @@ export function AuthProvider({ children }) {
   }
 
   const value = useMemo(
-<<<<<<< HEAD
-    () => ({ user, token, login, loginAdmin, register, logout, authError, authLoading }),
-=======
-    () => ({ user, token, login, register, loginWithGoogle, logout, authError, authLoading }),
->>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
+    () => ({ user, token, login, loginAdmin, register, loginWithGoogle, logout, authError, authLoading }),
     [user, token, authError, authLoading]
   );
 

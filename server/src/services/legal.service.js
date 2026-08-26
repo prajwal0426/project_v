@@ -34,10 +34,10 @@ export function validateLegalAcceptance(body) {
 
 export function hasLatestLegalConsent(account) {
   return Boolean(
-    account?.privacy_policy_accepted &&
-    account?.terms_accepted &&
-    account?.age_confirmed &&
-    account?.privacy_policy_version === LEGAL_VERSIONS.privacyPolicy &&
-    account?.terms_version === LEGAL_VERSIONS.terms
+    account?.privacyPolicyAccepted &&
+    account?.termsAccepted &&
+    account?.ageConfirmed &&
+    account?.privacyPolicyVersion === LEGAL_VERSIONS.privacyPolicy &&
+    account?.termsVersion === LEGAL_VERSIONS.terms
   );
 }

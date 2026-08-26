@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { errorHandler, notFound } from './middleware/error.middleware.js';
 import routes from './routes/index.js';
-import { runMigrations } from './services/migration.service.js';
+import { connectDB } from './config/db.js';
 import { startRankingCron } from './services/ranking.service.js';
 
 const app = express();
@@ -27,7 +27,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 try {
-  await runMigrations();
+  await connectDB();
   startRankingCron();
 
   app.listen(port, () => {

@@ -1,45 +1,77 @@
 import cron from 'node-cron';
-import { query } from '../config/db.js';
+import { Project, Ranking, Submission } from '../models/index.js';
 
 export async function recalculateMonthlyRankings() {
-  await query(`
-    insert into rankings (user_id, month, projects_completed, feedback_score, star_rating, difficulty_score, total_score, badge)
-    select
-      s.user_id,
-      date_trunc('month', now())::date as month,
-      count(*) filter (where s.status = 'approved') as projects_completed,
-      coalesce(avg(s.feedback_score), 0) as feedback_score,
-      coalesce(avg(s.star_rating), 0) as star_rating,
-      coalesce(sum(case p.difficulty when 'hard' then 30 when 'medium' then 20 else 10 end), 0) as difficulty_score,
-      (
-        count(*) filter (where s.status = 'approved') * 100
-        + coalesce(avg(s.feedback_score), 0) * 20
-        + coalesce(avg(s.star_rating), 0) * 25
-        + coalesce(sum(case p.difficulty when 'hard' then 30 when 'medium' then 20 else 10 end), 0)
-      ) as total_score,
-      case
-        when (
-          count(*) filter (where s.status = 'approved') * 100
-          + coalesce(avg(s.feedback_score), 0) * 20
-          + coalesce(avg(s.star_rating), 0) * 25
-          + coalesce(sum(case p.difficulty when 'hard' then 30 when 'medium' then 20 else 10 end), 0)
-        ) >= 5000 then 'Diamond'
-        when count(*) filter (where s.status = 'approved') >= 20 then 'Gold'
-        when count(*) filter (where s.status = 'approved') >= 10 then 'Silver'
-        else 'Bronze'
-      end as badge
-    from submissions s
-    join projects p on p.id = s.project_id
-    group by s.user_id
-    on conflict (user_id, month) do update set
-      projects_completed = excluded.projects_completed,
-      feedback_score = excluded.feedback_score,
-      star_rating = excluded.star_rating,
-      difficulty_score = excluded.difficulty_score,
-      total_score = excluded.total_score,
-      badge = excluded.badge,
-      updated_at = now()
-  `);
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  // Aggregate approved submissions this month
+  const results = await Submission.aggregate([
+    { $match: { status: 'approved' } },
+    {
+      $lookup: {
+        from: 'projects',
+        localField: 'projectId',
+        foreignField: '_id',
+        as: 'project'
+      }
+    },
+    { $unwind: '$project' },
+    {
+      $group: {
+        _id: '$userId',
+        projectsCompleted: { $sum: 1 },
+        feedbackScore: { $avg: '$feedbackScore' },
+        starRating: { $avg: '$starRating' },
+        difficultyScore: {
+          $sum: {
+            $switch: {
+              branches: [
+                { case: { $eq: ['$project.difficulty', 'hard'] }, then: 30 },
+                { case: { $eq: ['$project.difficulty', 'medium'] }, then: 20 }
+              ],
+              default: 10
+            }
+          }
+        }
+      }
+    }
+  ]);
+
+  const ops = results.map(r => {
+    const totalScore =
+      r.projectsCompleted * 100 +
+      (r.feedbackScore || 0) * 20 +
+      (r.starRating || 0) * 25 +
+      (r.difficultyScore || 0);
+
+    const badge =
+      totalScore >= 5000 ? 'Diamond' :
+      r.projectsCompleted >= 20 ? 'Gold' :
+      r.projectsCompleted >= 10 ? 'Silver' : 'Bronze';
+
+    return {
+      updateOne: {
+        filter: { userId: r._id, month: startOfMonth },
+        update: {
+          $set: {
+            projectsCompleted: r.projectsCompleted,
+            feedbackScore: r.feedbackScore || 0,
+            starRating: r.starRating || 0,
+            difficultyScore: r.difficultyScore || 0,
+            totalScore,
+            badge
+          }
+        },
+        upsert: true
+      }
+    };
+  });
+
+  if (ops.length > 0) {
+    await Ranking.bulkWrite(ops);
+  }
 }
 
 export function startRankingCron() {

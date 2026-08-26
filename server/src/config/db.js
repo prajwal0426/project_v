@@ -1,19 +1,15 @@
-import pg from 'pg';
+import mongoose from 'mongoose';
 
-const { Pool } = pg;
+export async function connectDB() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI is not set in environment variables');
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: Number(process.env.PG_CONNECTION_TIMEOUT_MS || 5000),
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+  await mongoose.connect(uri, {
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+  });
 
-export async function query(text, params) {
-  const startedAt = Date.now();
-  const result = await pool.query(text, params);
-  const duration = Date.now() - startedAt;
-  if (process.env.NODE_ENV !== 'test' && duration > 500) {
-    console.warn('Slow query', { duration, rows: result.rowCount });
-  }
-  return result;
+  console.log(`MongoDB connected: ${mongoose.connection.host}`);
 }
+
+export default mongoose;

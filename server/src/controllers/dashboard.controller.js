@@ -1,45 +1,43 @@
-import { query } from '../config/db.js';
+import { Notification, Project, Ranking, Transaction, User, Wallet } from '../models/index.js';
 
 export async function userDashboard(req, res, next) {
   try {
     const [wallet, notifications, ranking] = await Promise.all([
-      query('select * from wallets where user_id = $1', [req.user.id]),
-      query('select * from notifications where user_id = $1 order by created_at desc limit 10', [req.user.id]),
-      query('select * from rankings where user_id = $1 order by month desc limit 1', [req.user.id])
+      Wallet.findOne({ userId: req.user.id }).lean(),
+      Notification.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(10).lean(),
+      Ranking.findOne({ userId: req.user.id }).sort({ month: -1 }).lean()
     ]);
-    res.json({ wallet: wallet.rows[0], notifications: notifications.rows, ranking: ranking.rows[0] });
-  } catch (error) {
-    next(error);
-  }
+    res.json({ wallet: wallet || { coinBalance: 0, inrBalance: 0, pendingInrBalance: 0 }, notifications, ranking });
+  } catch (error) { next(error); }
 }
 
 export async function companyDashboard(req, res, next) {
   try {
-    const { rows } = await query(
-      `select p.*, count(s.id) as submissions
-       from projects p
-       left join submissions s on s.project_id = p.id
-       where p.company_id = $1
-       group by p.id
-       order by p.created_at desc`,
-      [req.user.id]
-    );
-    res.json({ projects: rows });
-  } catch (error) {
-    next(error);
-  }
+    const projects = await Project.aggregate([
+      { $match: { companyId: req.user.id } },
+      {
+        $lookup: {
+          from: 'submissions',
+          localField: '_id',
+          foreignField: 'projectId',
+          as: 'submissionsArr'
+        }
+      },
+      { $addFields: { submissions: { $size: '$submissionsArr' } } },
+      { $project: { submissionsArr: 0 } },
+      { $sort: { createdAt: -1 } }
+    ]);
+    res.json({ projects });
+  } catch (error) { next(error); }
 }
 
 export async function adminDashboard(_req, res, next) {
   try {
-    const { rows } = await query(`
-      select
-        (select count(*) from users) as users,
-        (select count(*) from companies) as companies,
-        (select count(*) from transactions where status = 'pending') as pending_withdrawals
-    `);
-    res.json(rows[0]);
-  } catch (error) {
-    next(error);
-  }
+    const [users, companies, pendingWithdrawals] = await Promise.all([
+      User.countDocuments(),
+      Wallet.countDocuments({ companyId: { $exists: true } }),
+      Transaction.countDocuments({ status: 'pending' })
+    ]);
+    res.json({ users, companies, pending_withdrawals: pendingWithdrawals });
+  } catch (error) { next(error); }
 }

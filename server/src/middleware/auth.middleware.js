@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { query } from '../config/db.js';
+import { Company, User } from '../models/index.js';
 import { hasLatestLegalConsent } from '../services/legal.service.js';
 
 export function authenticate(req, res, next) {
@@ -24,37 +24,33 @@ export async function requireActiveAccount(req, res, next) {
       return next();
     }
 
-    const table = req.user.role === 'company' ? 'companies' : 'users';
-    const { rows } = await query(
-      `select account_status, suspension_until, token_version, restriction_data
-       from ${table}
-       where id = $1`,
-      [req.user.id]
-    );
-    const account = rows[0];
+    const Model = req.user.role === 'company' ? Company : User;
+    const account = await Model.findById(req.user.id)
+      .select('accountStatus suspensionUntil tokenVersion restrictionData')
+      .lean();
 
     if (!account) {
       return res.status(401).json({ message: 'Account no longer exists' });
     }
 
-    if (Number(account.token_version || 0) !== Number(req.user.tokenVersion || 0)) {
+    if (Number(account.tokenVersion || 0) !== Number(req.user.tokenVersion || 0)) {
       return res.status(401).json({ message: 'Session expired. Please sign in again.' });
     }
 
-    if (account.account_status === 'BLOCKED') {
+    if (account.accountStatus === 'BLOCKED') {
       return res.status(403).json({ message: 'This account is blocked.' });
     }
 
-    if (account.account_status === 'SUSPENDED') {
-      const suspensionUntil = account.suspension_until ? new Date(account.suspension_until) : null;
+    if (account.accountStatus === 'SUSPENDED') {
+      const suspensionUntil = account.suspensionUntil ? new Date(account.suspensionUntil) : null;
       if (!suspensionUntil || suspensionUntil > new Date()) {
         return res.status(403).json({ message: 'This account is suspended.' });
       }
     }
 
     req.accountControls = {
-      status: account.account_status,
-      restrictions: account.restriction_data || {}
+      status: account.accountStatus,
+      restrictions: account.restrictionData || {}
     };
     return next();
   } catch (error) {
@@ -87,15 +83,12 @@ export async function requireLatestLegalConsent(req, res, next) {
       return next();
     }
 
-    const table = req.user.role === 'company' ? 'companies' : 'users';
-    const { rows } = await query(
-      `select privacy_policy_accepted, terms_accepted, age_confirmed, privacy_policy_version, terms_version
-       from ${table}
-       where id = $1`,
-      [req.user.id]
-    );
+    const Model = req.user.role === 'company' ? Company : User;
+    const account = await Model.findById(req.user.id)
+      .select('privacyPolicyAccepted termsAccepted ageConfirmed privacyPolicyVersion termsVersion')
+      .lean();
 
-    if (!hasLatestLegalConsent(rows[0])) {
+    if (!hasLatestLegalConsent(account)) {
       return res.status(403).json({
         code: 'LEGAL_CONSENT_REQUIRED',
         message: 'Please accept the latest Privacy Policy and Terms & Conditions before continuing.'
