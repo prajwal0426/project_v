@@ -49,6 +49,9 @@ export const authApi = {
   },
   register(role, formData) {
     return apiRequest(`/auth/${role}/register`, { method: 'POST', body: formData });
+  },
+  loginWithGoogle(tokenResponse) {
+    return apiRequest('/auth/google', { method: 'POST', body: tokenResponse });
   }
 };
 

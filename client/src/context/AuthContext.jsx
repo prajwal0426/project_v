@@ -113,9 +113,38 @@ export function AuthProvider({ children }) {
     }
   }
 
+<<<<<<< HEAD
   async function logout() {
     const activeToken = token;
     const activeRole = user?.role;
+=======
+  async function loginWithGoogle(tokenResponse) {
+    setAuthLoading(true);
+    setAuthError('');
+
+    try {
+      const response = await authApi.loginWithGoogle(tokenResponse);
+      const nextSession = {
+        token: response?.token || '',
+        user: {
+          ...(response?.account || {}),
+          role: 'user'
+        }
+      };
+
+      setSession(nextSession);
+      window.localStorage.setItem('vertex.session', JSON.stringify(nextSession));
+      return nextSession.user;
+    } catch (error) {
+      setAuthError(error.message || 'Google Sign-In failed');
+      throw error;
+    } finally {
+      setAuthLoading(false);
+    }
+  }
+
+  function logout() {
+>>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
     setSession(null);
     setAuthError('');
     window.localStorage.removeItem('vertex.session');
@@ -131,7 +160,11 @@ export function AuthProvider({ children }) {
   }
 
   const value = useMemo(
+<<<<<<< HEAD
     () => ({ user, token, login, loginAdmin, register, logout, authError, authLoading }),
+=======
+    () => ({ user, token, login, register, loginWithGoogle, logout, authError, authLoading }),
+>>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
     [user, token, authError, authLoading]
   );
 

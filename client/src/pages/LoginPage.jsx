@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Apple, Eye, EyeOff, LockKeyhole, Moon, Sun, X } from 'lucide-react';
 import LegalDocumentModal from '../components/LegalDocumentModal.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -11,8 +11,13 @@ function landingFor(role) {
   return 'dashboard';
 }
 
+<<<<<<< HEAD
 export default function LoginPage({ bright, setBright, onAuthenticated, onAdminLogin }) {
   const { login, register, authError, authLoading } = useAuth();
+=======
+export default function LoginPage({ bright, setBright, onAuthenticated }) {
+  const { login, register, loginWithGoogle, authError, authLoading } = useAuth();
+>>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('register');
   const [role, setRole] = useState('user');
@@ -70,6 +75,7 @@ export default function LoginPage({ bright, setBright, onAuthenticated, onAdminL
     setLegalDocument(documentType);
   }
 
+<<<<<<< HEAD
   function redirectToOAuth(event, provider) {
     event.stopPropagation();
     window.location.href = `${API_BASE_URL}/auth/${provider}`;
@@ -77,6 +83,26 @@ export default function LoginPage({ bright, setBright, onAuthenticated, onAdminL
 
   function googleLogin(event) {
     redirectToOAuth(event, 'google');
+=======
+    onSuccess: async (tokenResponse) => {
+      try {
+        const user = await loginWithGoogle(tokenResponse);
+        onAuthenticated(landingFor(user?.role || 'user'));
+      } catch (err) {
+        console.error("Google Login Success Callback Error:", err);
+      }
+    },
+
+    onError: () => {
+        console.log("Google Login Failed");
+    },
+  });
+
+  function redirectToOAuth(event, provider) {
+    event.preventDefault();
+    console.log(`OAuth login with ${provider} is not configured yet.`);
+    alert(`OAuth login with ${provider} is not configured yet.`);
+>>>>>>> 76a1de5ada0e9af8ffff62e033861cc120b2dd7b
   }
 
   
