@@ -8,6 +8,19 @@ create table if not exists users (
   date_of_birth date not null,
   government_id_file text,
   id_verification_status varchar(40) not null default 'pending',
+  account_status varchar(30) not null default 'ACTIVE',
+  blocked_at timestamptz,
+  blocked_by varchar(160),
+  restricted_at timestamptz,
+  restricted_by varchar(160),
+  restriction_data jsonb not null default '{}'::jsonb,
+  suspended_at timestamptz,
+  suspended_by varchar(160),
+  suspension_reason text,
+  suspension_until timestamptz,
+  token_version integer not null default 0,
+  last_login_at timestamptz,
+  password_reset_requested_at timestamptz,
   privacy_policy_accepted boolean not null default false,
   terms_accepted boolean not null default false,
   age_confirmed boolean not null default false,
@@ -33,6 +46,19 @@ create table if not exists companies (
   terms_version varchar(20),
   profile text,
   status varchar(40) not null default 'pending',
+  account_status varchar(30) not null default 'ACTIVE',
+  blocked_at timestamptz,
+  blocked_by varchar(160),
+  restricted_at timestamptz,
+  restricted_by varchar(160),
+  restriction_data jsonb not null default '{}'::jsonb,
+  suspended_at timestamptz,
+  suspended_by varchar(160),
+  suspension_reason text,
+  suspension_until timestamptz,
+  token_version integer not null default 0,
+  last_login_at timestamptz,
+  password_reset_requested_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -126,6 +152,28 @@ create table if not exists notifications (
   created_at timestamptz not null default now()
 );
 
+create table if not exists admin_audit_logs (
+  id uuid primary key default uuid_generate_v4(),
+  admin_id varchar(160) not null,
+  target_id uuid not null,
+  target_type varchar(30) not null,
+  action varchar(80) not null,
+  reason text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists password_reset_requests (
+  id uuid primary key default uuid_generate_v4(),
+  target_id uuid not null,
+  target_type varchar(30) not null,
+  requested_by varchar(160) not null,
+  token_hash text,
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists messages (
   id uuid primary key default uuid_generate_v4(),
   sender_id uuid not null,
@@ -152,6 +200,9 @@ create index if not exists idx_submissions_project on submissions(project_id);
 create index if not exists idx_rankings_month_score on rankings(month, total_score desc);
 create index if not exists idx_transactions_status on transactions(status);
 create index if not exists idx_notifications_user on notifications(user_id, is_read);
+create index if not exists idx_users_account_status on users(account_status);
+create index if not exists idx_companies_account_status on companies(account_status);
+create index if not exists idx_admin_audit_logs_target on admin_audit_logs(target_type, target_id);
 
 alter table users add column if not exists privacy_policy_accepted boolean not null default false;
 alter table users add column if not exists terms_accepted boolean not null default false;
@@ -159,6 +210,19 @@ alter table users add column if not exists age_confirmed boolean not null defaul
 alter table users add column if not exists legal_accepted_at timestamptz;
 alter table users add column if not exists privacy_policy_version varchar(20);
 alter table users add column if not exists terms_version varchar(20);
+alter table users add column if not exists account_status varchar(30) not null default 'ACTIVE';
+alter table users add column if not exists blocked_at timestamptz;
+alter table users add column if not exists blocked_by varchar(160);
+alter table users add column if not exists restricted_at timestamptz;
+alter table users add column if not exists restricted_by varchar(160);
+alter table users add column if not exists restriction_data jsonb not null default '{}'::jsonb;
+alter table users add column if not exists suspended_at timestamptz;
+alter table users add column if not exists suspended_by varchar(160);
+alter table users add column if not exists suspension_reason text;
+alter table users add column if not exists suspension_until timestamptz;
+alter table users add column if not exists token_version integer not null default 0;
+alter table users add column if not exists last_login_at timestamptz;
+alter table users add column if not exists password_reset_requested_at timestamptz;
 
 alter table companies add column if not exists privacy_policy_accepted boolean not null default false;
 alter table companies add column if not exists terms_accepted boolean not null default false;
@@ -166,6 +230,19 @@ alter table companies add column if not exists age_confirmed boolean not null de
 alter table companies add column if not exists legal_accepted_at timestamptz;
 alter table companies add column if not exists privacy_policy_version varchar(20);
 alter table companies add column if not exists terms_version varchar(20);
+alter table companies add column if not exists account_status varchar(30) not null default 'ACTIVE';
+alter table companies add column if not exists blocked_at timestamptz;
+alter table companies add column if not exists blocked_by varchar(160);
+alter table companies add column if not exists restricted_at timestamptz;
+alter table companies add column if not exists restricted_by varchar(160);
+alter table companies add column if not exists restriction_data jsonb not null default '{}'::jsonb;
+alter table companies add column if not exists suspended_at timestamptz;
+alter table companies add column if not exists suspended_by varchar(160);
+alter table companies add column if not exists suspension_reason text;
+alter table companies add column if not exists suspension_until timestamptz;
+alter table companies add column if not exists token_version integer not null default 0;
+alter table companies add column if not exists last_login_at timestamptz;
+alter table companies add column if not exists password_reset_requested_at timestamptz;
 
 alter table wallets add column if not exists inr_balance numeric(12,2) not null default 0;
 alter table wallets add column if not exists pending_inr_balance numeric(12,2) not null default 0;

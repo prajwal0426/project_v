@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { query } from '../config/db.js';
 import { hasLatestLegalConsent, LEGAL_VERSIONS, validateLegalAcceptance } from '../services/legal.service.js';
 import { signToken } from '../services/token.service.js';
@@ -44,6 +45,23 @@ async function createAccount({ table, role, body, idFile }) {
   };
 }
 
+function assertAccountCanAuthenticate(account) {
+  if (account.account_status === 'BLOCKED') {
+    const error = new Error('This account is blocked. Contact VERTEX support.');
+    error.status = 403;
+    throw error;
+  }
+
+  if (account.account_status === 'SUSPENDED') {
+    const suspensionUntil = account.suspension_until ? new Date(account.suspension_until) : null;
+    if (!suspensionUntil || suspensionUntil > new Date()) {
+      const error = new Error('This account is suspended. Contact VERTEX support.');
+      error.status = 403;
+      throw error;
+    }
+  }
+}
+
 async function loginAccount({ table, role, email, password }) {
   const { rows } = await query(`select * from ${table} where email = $1`, [email]);
   const account = rows[0];
@@ -54,16 +72,31 @@ async function loginAccount({ table, role, email, password }) {
     throw error;
   }
 
+  assertAccountCanAuthenticate(account);
+
   if ((role === 'user' || role === 'company') && !hasLatestLegalConsent(account)) {
     const error = new Error('Latest Privacy Policy, Terms & Conditions, and age confirmation must be accepted before accessing VERTEX');
     error.status = 403;
     throw error;
   }
 
+  await query(`update ${table} set last_login_at = now() where id = $1`, [account.id]);
+
   return {
-    account: { id: account.id, name: account.name, email: account.email },
-    token: signToken({ id: account.id, role, email: account.email })
+    account: { id: account.id, name: account.name, email: account.email, accountStatus: account.account_status || 'ACTIVE' },
+    token: signToken({ id: account.id, role, email: account.email, tokenVersion: account.token_version || 0 })
   };
+}
+
+function timingSafeEqualText(left = '', right = '') {
+  const leftBuffer = Buffer.from(String(left));
+  const rightBuffer = Buffer.from(String(right));
+
+  if (leftBuffer.length !== rightBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
 }
 
 export async function registerUser(req, res, next) {
@@ -98,12 +131,38 @@ export async function loginCompany(req, res, next) {
   }
 }
 
-export async function loginAdmin(req, res, next) {
+export async function loginAdmin(req, res) {
   try {
-    res.json(await loginAccount({ table: 'admins', role: 'admin', ...req.body }));
+    const configuredUsername = process.env.ADMIN_USERNAME;
+    const configuredPassword = process.env.ADMIN_PASSWORD;
+    const { username = '', password = '' } = req.body;
+
+    if (!configuredUsername || !configuredPassword) {
+      return res.status(500).json({ message: 'Admin login is not configured' });
+    }
+
+    const usernameMatches = timingSafeEqualText(String(username).trim(), configuredUsername);
+    const passwordMatches = timingSafeEqualText(password, configuredPassword);
+
+    if (!usernameMatches || !passwordMatches) {
+      return res.status(401).json({ message: 'Invalid admin credentials' });
+    }
+
+    return res.json({
+      account: {
+        id: 'env-admin',
+        name: 'VERTEX Admin',
+        username: configuredUsername
+      },
+      token: signToken({ id: 'env-admin', role: 'admin', username: configuredUsername })
+    });
   } catch (error) {
-    next(error);
+    return res.status(401).json({ message: 'Invalid admin credentials' });
   }
+}
+
+export async function logoutAdmin(_req, res) {
+  res.json({ message: 'Admin logged out' });
 }
 
 export async function appleLogin(_req, res) {
@@ -182,10 +241,14 @@ export async function googleLogin(req, res, next) {
       user = result.rows[0];
     }
 
+    assertAccountCanAuthenticate(user);
+    await query('update users set last_login_at = now() where id = $1', [user.id]);
+
     const token = signToken({
       id: user.id,
       role: "user",
-      email: user.email
+      email: user.email,
+      tokenVersion: user.token_version || 0
     });
 
     res.json({

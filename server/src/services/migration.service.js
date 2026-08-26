@@ -137,16 +137,63 @@ const LEGAL_CONSENT_COLUMNS = [
   ['terms_version', 'varchar(20)']
 ];
 
+const ACCOUNT_CONTROL_COLUMNS = [
+  ['account_status', "varchar(30) not null default 'ACTIVE'"],
+  ['blocked_at', 'timestamptz'],
+  ['blocked_by', 'varchar(160)'],
+  ['restricted_at', 'timestamptz'],
+  ['restricted_by', 'varchar(160)'],
+  ['restriction_data', "jsonb not null default '{}'::jsonb"],
+  ['suspended_at', 'timestamptz'],
+  ['suspended_by', 'varchar(160)'],
+  ['suspension_reason', 'text'],
+  ['suspension_until', 'timestamptz'],
+  ['token_version', 'integer not null default 0'],
+  ['last_login_at', 'timestamptz'],
+  ['password_reset_requested_at', 'timestamptz']
+];
+
 async function ensureColumns(table, columns) {
   for (const [name, definition] of columns) {
     await query(`alter table ${table} add column if not exists ${name} ${definition}`);
   }
 }
 
+async function ensureAdminTables() {
+  await query(`
+    create table if not exists admin_audit_logs (
+      id uuid primary key default uuid_generate_v4(),
+      admin_id varchar(160) not null,
+      target_id uuid not null,
+      target_type varchar(30) not null,
+      action varchar(80) not null,
+      reason text,
+      metadata jsonb not null default '{}'::jsonb,
+      created_at timestamptz not null default now()
+    )
+  `);
+
+  await query(`
+    create table if not exists password_reset_requests (
+      id uuid primary key default uuid_generate_v4(),
+      target_id uuid not null,
+      target_type varchar(30) not null,
+      requested_by varchar(160) not null,
+      token_hash text,
+      expires_at timestamptz not null,
+      used_at timestamptz,
+      created_at timestamptz not null default now()
+    )
+  `);
+}
+
 export async function runMigrations() {
   await ensureCoreTables();
+  await ensureAdminTables();
   await ensureColumns('users', LEGAL_CONSENT_COLUMNS);
   await ensureColumns('companies', LEGAL_CONSENT_COLUMNS);
+  await ensureColumns('users', ACCOUNT_CONTROL_COLUMNS);
+  await ensureColumns('companies', ACCOUNT_CONTROL_COLUMNS);
   await ensureColumns('wallets', [
     ['inr_balance', 'numeric(12,2) not null default 0'],
     ['pending_inr_balance', 'numeric(12,2) not null default 0']
@@ -166,4 +213,7 @@ export async function runMigrations() {
   await query('create index if not exists idx_rankings_month_score on rankings(month, total_score desc)');
   await query('create index if not exists idx_transactions_status on transactions(status)');
   await query('create index if not exists idx_notifications_user on notifications(user_id, is_read)');
+  await query('create index if not exists idx_users_account_status on users(account_status)');
+  await query('create index if not exists idx_companies_account_status on companies(account_status)');
+  await query('create index if not exists idx_admin_audit_logs_target on admin_audit_logs(target_type, target_id)');
 }

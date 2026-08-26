@@ -1,4 +1,4 @@
-import { CircleDollarSign, ShieldCheck, Users } from 'lucide-react';
+import { Building2, ClipboardList, FileText, ShieldCheck, Users, Wallet } from 'lucide-react';
 import EmptyState from '../components/EmptyState.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import PageIntro from '../components/PageIntro.jsx';
@@ -6,7 +6,16 @@ import { useAppData } from '../context/AppDataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useApiResource from '../hooks/useApiResource.js';
 
-export default function AdminDashboard() {
+const adminModules = [
+  { title: 'User Management', page: 'admin-users', icon: Users, text: 'View users, block access, manage restrictions, force logout, and request password resets.' },
+  { title: 'Company Management', page: 'admin-companies', icon: Building2, text: 'View companies, manage account status, restrictions, and reset workflows.' },
+  { title: 'Projects', page: 'projects', icon: FileText, text: 'Review platform project activity through existing project controls.' },
+  { title: 'Reports System', page: 'admin-reports', icon: FileText, text: 'Open protected platform account and financial summaries.' },
+  { title: 'Audit Logs', page: 'admin-audit', icon: ClipboardList, text: 'Review important admin actions across users and companies.' },
+  { title: 'Withdrawal Approval', page: 'admin-reports', icon: Wallet, text: 'Monitor pending withdrawal queues and financial actions.' }
+];
+
+export default function AdminDashboard({ setPage }) {
   const { token } = useAuth();
   const { dashboard, loadDashboard } = useAppData();
   const { loading, error } = useApiResource(() => loadDashboard('admin', token), [token]);
@@ -30,18 +39,19 @@ export default function AdminDashboard() {
           <small>Registered companies</small>
         </article>
         <article className="metric glass">
-          <CircleDollarSign />
+          <Wallet />
           <span>Pending Withdrawals (₹)</span>
           <strong>{Number(dashboard?.pending_withdrawals ?? 0).toLocaleString()}</strong>
           <small>Transaction queue</small>
         </article>
       </div>
       <div className="admin-grid">
-        {['User Management', 'Company Management', 'Fraud Detection', 'Withdrawal Approval', 'Analytics', 'Reports System', 'Coin Management'].map((module) => (
-          <article className="panel glass" key={module}>
-            <ShieldCheck />
-            <h3>{module}</h3>
-            <p>Role-protected controls should connect to the corresponding admin API before enabling mutations.</p>
+        {adminModules.map(({ title, page, icon: Icon, text }) => (
+          <article className="panel glass admin-module-card" key={title}>
+            <Icon />
+            <h3>{title}</h3>
+            <p>{text}</p>
+            <button className="ghost" type="button" onClick={() => setPage(page)}>Open</button>
           </article>
         ))}
       </div>

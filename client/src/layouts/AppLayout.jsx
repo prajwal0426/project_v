@@ -1,4 +1,4 @@
-import { Bell, BriefcaseBusiness, LayoutDashboard, LogOut, Moon, ShieldCheck, Sun, Trophy, Wallet } from 'lucide-react';
+import { Bell, BriefcaseBusiness, Building2, ClipboardList, FileText, LayoutDashboard, LogOut, Moon, ShieldCheck, Sun, Trophy, Users, Wallet } from 'lucide-react';
 import { useRef, useState } from 'react';
 import LegalDocumentModal from '../components/LegalDocumentModal.jsx';
 import Logo from '../components/Logo.jsx';
@@ -8,10 +8,14 @@ import { useAuth } from '../context/AuthContext.jsx';
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['user'] },
   { id: 'company', label: 'Company', icon: BriefcaseBusiness, roles: ['company'] },
-  { id: 'admin', label: 'Admin', icon: ShieldCheck, roles: ['admin'] },
+  { id: 'admin', label: 'Overview', icon: ShieldCheck, roles: ['admin'] },
+  { id: 'admin-users', label: 'Users', icon: Users, roles: ['admin'] },
+  { id: 'admin-companies', label: 'Companies', icon: Building2, roles: ['admin'] },
   { id: 'projects', label: 'Projects', icon: BriefcaseBusiness, roles: ['user', 'company', 'admin'] },
   { id: 'rankings', label: 'Rankings', icon: Trophy, roles: ['user', 'company', 'admin'] },
   { id: 'wallet', label: 'Wallet', icon: Wallet, roles: ['user'] },
+  { id: 'admin-reports', label: 'Reports', icon: FileText, roles: ['admin'] },
+  { id: 'admin-audit', label: 'Audit Logs', icon: ClipboardList, roles: ['admin'] },
   { id: 'notifications', label: 'Notifications', icon: Bell, roles: ['user', 'company', 'admin'] }
 ];
 

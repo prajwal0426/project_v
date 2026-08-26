@@ -7,10 +7,11 @@ import {
   loginAdmin,
   loginCompany,
   loginUser,
+  logoutAdmin,
   registerCompany,
   registerUser
 } from '../controllers/auth.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
+import { authenticate, authorize } from '../middleware/auth.middleware.js';
 import { upload } from '../middleware/upload.middleware.js';
 import { validate } from '../middleware/validation.middleware.js';
 
@@ -33,7 +34,8 @@ router.post('/user/register', register, registerUser);
 router.post('/user/login', credentials, loginUser);
 router.post('/company/register', register, registerCompany);
 router.post('/company/login', credentials, loginCompany);
-router.post('/admin/login', credentials, loginAdmin);
+router.post('/admin/login', loginAdmin);
+router.post('/admin/logout', authenticate, authorize('admin'), logoutAdmin);
 router.post('/google', googleLogin);
 router.post('/apple', appleLogin);
 router.patch(

@@ -1,4 +1,4 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_BASE_URL = "http://localhost:5000/api";
 
 async function parseResponse(response) {
   const contentType = response.headers.get('content-type') || '';
@@ -41,6 +41,12 @@ export const authApi = {
   login(role, credentials) {
     return apiRequest(`/auth/${role}/login`, { method: 'POST', body: credentials });
   },
+  adminLogin(credentials) {
+    return apiRequest('/auth/admin/login', { method: 'POST', body: credentials });
+  },
+  adminLogout(token) {
+    return apiRequest('/auth/admin/logout', { method: 'POST', token });
+  },
   register(role, formData) {
     return apiRequest(`/auth/${role}/register`, { method: 'POST', body: formData });
   }
@@ -67,5 +73,32 @@ export const rankingApi = {
 export const walletApi = {
   get(token) {
     return apiRequest('/wallet', { token });
+  }
+};
+
+export const adminApi = {
+  listAccounts(kind, token, params = {}) {
+    const query = new URLSearchParams(
+      Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')
+    ).toString();
+    return apiRequest(`/admin/${kind}${query ? `?${query}` : ''}`, { token });
+  },
+  getAccount(kind, id, token) {
+    return apiRequest(`/admin/${kind}/${id}`, { token });
+  },
+  updateStatus(kind, id, token, body) {
+    return apiRequest(`/admin/${kind}/${id}/status`, { method: 'PATCH', token, body });
+  },
+  updateRestrictions(kind, id, token, restrictions) {
+    return apiRequest(`/admin/${kind}/${id}/restrictions`, { method: 'PATCH', token, body: { restrictions } });
+  },
+  forceLogout(kind, id, token) {
+    return apiRequest(`/admin/${kind}/${id}/force-logout`, { method: 'POST', token });
+  },
+  requestPasswordReset(kind, id, token) {
+    return apiRequest(`/admin/${kind}/${id}/password-reset`, { method: 'POST', token });
+  },
+  auditLogs(token) {
+    return apiRequest('/admin/audit-logs', { token });
   }
 };

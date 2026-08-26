@@ -5,9 +5,13 @@ import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import AppLayout from './layouts/AppLayout.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import UserDashboard from './pages/UserDashboard.jsx';
 import CompanyDashboard from './pages/CompanyDashboard.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminAuditLogsPage from './pages/AdminAuditLogsPage.jsx';
+import AdminManagementPage from './pages/AdminManagementPage.jsx';
+import AdminReportsPage from './pages/AdminReportsPage.jsx';
 import ProjectsPage from './pages/ProjectsPage.jsx';
 import RankingsPage from './pages/RankingsPage.jsx';
 import WalletPage from './pages/WalletPage.jsx';
@@ -21,7 +25,25 @@ const protectedPages = {
   projects: ProjectsPage,
   rankings: RankingsPage,
   wallet: WalletPage,
-  notifications: NotificationsPage
+  notifications: NotificationsPage,
+  'admin-users': (props) => <AdminManagementPage {...props} kind="users" />,
+  'admin-companies': (props) => <AdminManagementPage {...props} kind="companies" />,
+  'admin-audit': AdminAuditLogsPage,
+  'admin-reports': AdminReportsPage
+};
+
+const pageRoles = {
+  dashboard: ['user'],
+  company: ['company'],
+  admin: ['admin'],
+  projects: ['user', 'company', 'admin'],
+  rankings: ['user', 'company', 'admin'],
+  wallet: ['user'],
+  notifications: ['user', 'company', 'admin'],
+  'admin-users': ['admin'],
+  'admin-companies': ['admin'],
+  'admin-audit': ['admin'],
+  'admin-reports': ['admin']
 };
 
 function pageForRole(role) {
@@ -41,10 +63,42 @@ function AppRoutes() {
     setPage(nextPage);
   }
 
-  if (!user) {
+  if (page === 'admin-login' && !user) {
     return (
       <main className={bright ? 'app bright' : 'app'}>
-        <LoginPage bright={bright} setBright={setBright} onAuthenticated={navigate} />
+        <AdminLoginPage bright={bright} setBright={setBright} onAuthenticated={navigate} onBack={() => navigate('login')} />
+      </main>
+    );
+  }
+
+  if (!user) {
+    if (page === 'admin') {
+      return (
+        <main className={bright ? 'app bright' : 'app'}>
+          <AdminLoginPage bright={bright} setBright={setBright} onAuthenticated={navigate} onBack={() => navigate('login')} />
+        </main>
+      );
+    }
+
+    return (
+      <main className={bright ? 'app bright' : 'app'}>
+        <LoginPage bright={bright} setBright={setBright} onAuthenticated={navigate} onAdminLogin={() => navigate('admin-login')} />
+      </main>
+    );
+  }
+
+  const allowedRoles = pageRoles[page] ?? ['user'];
+  if (!allowedRoles.includes(user.role)) {
+    const fallbackPage = pageForRole(user.role);
+    const FallbackPage = protectedPages[fallbackPage] ?? UserDashboard;
+
+    return (
+      <main className={bright ? 'app bright' : 'app'}>
+        <AppLayout page={fallbackPage} setPage={navigate} bright={bright} setBright={setBright}>
+          <ProtectedRoute allowedRoles={[user.role]}>
+            <FallbackPage setPage={navigate} />
+          </ProtectedRoute>
+        </AppLayout>
       </main>
     );
   }
@@ -52,7 +106,7 @@ function AppRoutes() {
   return (
     <main className={bright ? 'app bright' : 'app'}>
       <AppLayout page={page} setPage={navigate} bright={bright} setBright={setBright}>
-        <ProtectedRoute>
+        <ProtectedRoute allowedRoles={allowedRoles}>
           <ActivePage setPage={navigate} />
         </ProtectedRoute>
       </AppLayout>
