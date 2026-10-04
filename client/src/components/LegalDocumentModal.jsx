@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { LEGAL_DOCUMENTS } from '../services/legal.js';
 
-export default function LegalDocumentModal({ documentType, onClose, returnFocusRef }) {
+export default function LegalDocumentModal({ documentType, onClose, onAgree, returnFocusRef }) {
   const closeButtonRef = useRef(null);
   const legalDocument = documentType ? LEGAL_DOCUMENTS[documentType] : null;
 
@@ -51,6 +51,11 @@ export default function LegalDocumentModal({ documentType, onClose, returnFocusR
             </section>
           ))}
         </div>
+        {onAgree ? (
+          <div className="legal-actions">
+            <button className="primary" type="button" onClick={onAgree}>OK</button>
+          </div>
+        ) : null}
       </article>
     </div>
   );
