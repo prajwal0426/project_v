@@ -1,4 +1,5 @@
-export const API_BASE_URL = "http://localhost:5000/api";
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+export const API_BASE_URL = (configuredApiBaseUrl || '/api').replace(/\/$/, '');
 
 async function parseResponse(response) {
   const contentType = response.headers.get('content-type') || '';
@@ -38,6 +39,15 @@ export async function apiRequest(path, options = {}) {
 }
 
 export const authApi = {
+  session(token) {
+    return apiRequest('/auth/session', { token });
+  },
+  legalRequirements() {
+    return apiRequest('/auth/legal-requirements');
+  },
+  acceptLegal(token, consent) {
+    return apiRequest('/auth/legal-consent', { method: 'PATCH', token, body: consent });
+  },
   login(role, credentials) {
     return apiRequest(`/auth/${role}/login`, { method: 'POST', body: credentials });
   },

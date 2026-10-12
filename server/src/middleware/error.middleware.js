@@ -5,9 +5,11 @@ export function notFound(req, res, next) {
 }
 
 export function errorHandler(error, _req, res, _next) {
-  const status = error.status || 500;
+  const duplicateKey = error?.code === 11000;
+  const malformedId = error?.name === 'CastError';
+  const status = error.status || (duplicateKey ? 409 : malformedId ? 400 : 500);
   res.status(status).json({
-    message: error.message || 'Server error',
+    message: duplicateKey ? 'A record with that value already exists' : malformedId ? 'Invalid identifier' : error.message || 'Server error',
     stack: process.env.NODE_ENV === 'production' ? undefined : error.stack
   });
 }

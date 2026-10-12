@@ -16,7 +16,7 @@ const router = Router();
 const adminOnly = [authenticate, authorize('admin')];
 const accountParams = [
   param('kind').isIn(['users', 'companies']),
-  param('id').isUUID(),
+  param('id').isMongoId(),
   validate
 ];
 

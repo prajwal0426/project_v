@@ -5,10 +5,12 @@ export async function recalculateMonthlyRankings() {
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
+  const endOfMonth = new Date(startOfMonth);
+  endOfMonth.setMonth(endOfMonth.getMonth() + 1);
 
   // Aggregate approved submissions this month
   const results = await Submission.aggregate([
-    { $match: { status: 'approved' } },
+    { $match: { status: 'approved', reviewedAt: { $gte: startOfMonth, $lt: endOfMonth } } },
     {
       $lookup: {
         from: 'projects',

@@ -20,6 +20,12 @@ export function authenticate(req, res, next) {
 
 export async function requireActiveAccount(req, res, next) {
   try {
+    if (req.user?.role === 'google-pending') {
+      return res.status(403).json({
+        code: 'LEGAL_CONSENT_REQUIRED',
+        message: 'Accept the required VERTEX agreements before continuing.'
+      });
+    }
     if (!['user', 'company'].includes(req.user?.role)) {
       return next();
     }

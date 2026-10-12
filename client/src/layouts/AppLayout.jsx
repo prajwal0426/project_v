@@ -1,6 +1,5 @@
 import { Bell, BriefcaseBusiness, Building2, ClipboardList, FileText, LayoutDashboard, LogOut, Moon, ShieldCheck, Sun, Trophy, Users, Wallet } from 'lucide-react';
-import { useRef, useState } from 'react';
-import LegalDocumentModal from '../components/LegalDocumentModal.jsx';
+
 import Logo from '../components/Logo.jsx';
 import { useAppData } from '../context/AppDataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -25,23 +24,16 @@ function homePageFor(role) {
   return 'dashboard';
 }
 
-export default function AppLayout({ children, page, setPage, bright, setBright }) {
+export default function AppLayout({ children, page, setPage, bright, setBright, onLoggedOut }) {
   const { user, logout } = useAuth();
   const { resetData } = useAppData();
-  const [legalDocument, setLegalDocument] = useState(null);
-  const legalReturnFocusRef = useRef(null);
   const role = user?.role || 'user';
   const visibleNav = navItems.filter((item) => item.roles.includes(role));
 
-  function handleLogout() {
+  async function handleLogout() {
     resetData();
-    logout();
-    setPage('login');
-  }
-
-  function openLegalDocument(event, documentType) {
-    legalReturnFocusRef.current = event.currentTarget;
-    setLegalDocument(documentType);
+    await logout();
+    onLoggedOut?.();
   }
 
   return (
@@ -70,13 +62,10 @@ export default function AppLayout({ children, page, setPage, bright, setBright }
       </header>
       {children}
       <footer className="footer">
-        VERTEX production modules: authentication, projects, rankings, wallet, dashboards, notifications, progress.
-        {' '}
-        <button type="button" onClick={(event) => openLegalDocument(event, 'privacy')}>Privacy Policy</button>
-        {' '}
-        <button type="button" onClick={(event) => openLegalDocument(event, 'terms')}>Terms & Conditions</button>
+        <Logo variant="footer" />
+        <span>VERTEX production modules: authentication, projects, rankings, wallet, dashboards, notifications, progress.</span>
       </footer>
-      <LegalDocumentModal documentType={legalDocument} onClose={() => setLegalDocument(null)} returnFocusRef={legalReturnFocusRef} />
+
     </>
   );
 }

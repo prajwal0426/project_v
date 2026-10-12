@@ -1,18 +1,17 @@
-export default function Logo({ imageSrc = null }) {
+const VERTEX_LOGO_SRC = '/login-logo.png';
+
+export default function Logo({ variant = 'header', showText = true, className = '' }) {
   return (
-    <div className="logo">
-      {imageSrc ? (
-        <img className="logo-image" src={imageSrc} alt="VERTEX" onError={(event) => { event.currentTarget.style.display = 'none'; }} />
-      ) : (
-        <div className="logo-mark" aria-hidden="true">
-          <span />
-          <span />
-        </div>
-      )}
-      <div>
-        <strong>VERTEX</strong>
-        <span>Build. Rank. Earn.</span>
-      </div>
+    <div className={`logo logo-${variant} ${className}`.trim()}>
+      <span className="logo-asset-frame" aria-hidden="true">
+        <img className="logo-asset" src={VERTEX_LOGO_SRC} alt="" />
+      </span>
+      {showText ? (
+        <span className="logo-copy">
+          <strong>VERTEX</strong>
+          <span>Build. Rank. Earn.</span>
+        </span>
+      ) : null}
     </div>
   );
 }

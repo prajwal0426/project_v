@@ -7,7 +7,7 @@ import { validate } from '../middleware/validation.middleware.js';
 const router = Router();
 
 router.get('/', authenticate, authorize('user'), requireActiveAccount, requireLatestLegalConsent, getWallet);
-router.post('/withdraw', authenticate, authorize('user'), requireActiveAccount, requireLatestLegalConsent, requireNoRestriction('withdraw'), body('paypalEmail').isEmail(), body('coinAmount').isNumeric(), validate, withdraw);
+router.post('/withdraw', authenticate, authorize('user'), requireActiveAccount, requireLatestLegalConsent, requireNoRestriction('withdraw'), body('paypalEmail').isEmail(), body('coinAmount').isInt({ min: 1 }), validate, withdraw);
 router.post('/paypal/order', authenticate, requireActiveAccount, requireLatestLegalConsent, requireNoRestriction('financialActions'), createPurchase);
 
 export default router;

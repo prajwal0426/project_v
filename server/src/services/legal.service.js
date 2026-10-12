@@ -1,7 +1,15 @@
 export const LEGAL_VERSIONS = {
-  privacyPolicy: '1.0',
-  terms: '1.0'
+  privacyPolicy: process.env.LEGAL_PRIVACY_POLICY_VERSION || '1.0',
+  terms: process.env.LEGAL_TERMS_VERSION || '1.0'
 };
+
+export function legalRequirements(account) {
+  return {
+    privacyPolicyVersion: LEGAL_VERSIONS.privacyPolicy,
+    termsVersion: LEGAL_VERSIONS.terms,
+    ageConfirmationRequired: !account?.ageConfirmed
+  };
+}
 
 export function acceptedLegal(body) {
   return {
@@ -30,6 +38,25 @@ export function validateLegalAcceptance(body) {
   }
 
   return consent;
+}
+
+export function validatePolicyAcceptance(body, { requireAge = false } = {}) {
+  const privacyPolicyAccepted = body.privacyPolicyAccepted === true || body.privacyPolicyAccepted === 'true';
+  const termsAccepted = body.termsAccepted === true || body.termsAccepted === 'true';
+  const ageConfirmed = body.ageConfirmed === true || body.ageConfirmed === 'true';
+  const missing = [];
+
+  if (!privacyPolicyAccepted) missing.push('Please accept the Privacy Policy.');
+  if (!termsAccepted) missing.push('Please accept the Terms & Conditions.');
+  if (requireAge && !ageConfirmed) missing.push('Please confirm that you are 18 years of age or older.');
+
+  if (missing.length) {
+    const error = new Error(missing.join(' '));
+    error.status = 422;
+    throw error;
+  }
+
+  return { privacyPolicyAccepted, termsAccepted, ageConfirmed };
 }
 
 export function hasLatestLegalConsent(account) {

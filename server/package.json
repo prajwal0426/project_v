@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/app.js",
-    "start": "node src/app.js"
+    "start": "node src/app.js",
+    "migrate:postgres": "node scripts/migrate-postgres-to-mongo.js"
   },
   "dependencies": {
     "@react-oauth/google": "^0.13.5",
@@ -20,7 +21,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^9.9.4",
     "multer": "^2.1.1",
-    "node-cron": "^3.0.3"
+    "node-cron": "^3.0.3",
+    "pg": "^8.21.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
