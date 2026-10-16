@@ -1814,24 +1814,36 @@
 }
 
 .vertex-auth-shell {
-  height: auto;
-  min-height: 100vh;
-  min-height: 100svh;
+  width: 100%;
+  min-width: 0;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   max-height: none;
-  overflow: hidden auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .vertex-auth-stage {
   position: relative;
   z-index: 1;
   width: min(1240px, calc(100% - 48px));
-  min-height: calc(100svh - clamp(48px, 8svh, 80px));
+  height: 100%;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
   align-items: center;
-  gap: clamp(32px, 8vw, 130px);
+  gap: clamp(24px, 4vw, 64px);
   margin-inline: auto;
-  padding: clamp(40px, 7vh, 86px) 0 clamp(74px, 10vh, 112px);
+  padding: clamp(8px, 1.5dvh, 14px) 0;
+}
+
+.vertex-auth-stage > .cinematic-scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .vertex-auth-brand {
@@ -1863,7 +1875,7 @@
 
 .vertex-auth-logo .logo-asset-frame {
   aspect-ratio: 0.45 / 1;
-  max-height: 58svh;
+  max-height: min(56dvh, 430px);
 }
 
 .vertex-auth-brand p {
@@ -1884,7 +1896,13 @@
   justify-self: end;
   border: 1px solid rgba(185, 119, 255, 0.62);
   border-radius: 12px;
-  padding: clamp(26px, 3vw, 42px);
+  min-height: 0;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: clamp(18px, 1.3vw, 22px);
   color: #f7f4ff;
   background: rgba(4, 4, 12, 0.9);
   box-shadow: 0 0 42px rgba(139, 42, 255, 0.24), inset 0 0 40px rgba(109, 36, 195, 0.06);
@@ -1892,7 +1910,7 @@
 }
 
 .vertex-auth-heading {
-  margin-bottom: 28px;
+  margin-bottom: 14px;
   text-align: center;
 }
 
@@ -1924,12 +1942,12 @@
 
 .vertex-auth-form {
   display: grid;
-  gap: 18px;
+  gap: 8px;
 }
 
 .vertex-auth-form > label {
   display: grid;
-  gap: 8px;
+  gap: 4px;
   color: #c3bbd1;
   font-size: 0.75rem;
   font-weight: 700;
@@ -1938,7 +1956,7 @@
 
 .vertex-input {
   position: relative;
-  min-height: 56px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1977,7 +1995,7 @@
 }
 
 .vertex-plain-input {
-  min-height: 50px;
+  min-height: 44px;
   border: 1px solid rgba(163, 102, 255, 0.48);
   border-radius: 6px;
   padding: 0 14px;
@@ -2018,7 +2036,7 @@
 
 .vertex-consent {
   display: grid;
-  gap: 10px;
+  gap: 6px;
   color: #c2b9d1;
   font-size: 0.83rem;
   line-height: 1.4;
@@ -2048,7 +2066,7 @@
 }
 
 .vertex-auth-submit {
-  min-height: 58px;
+  min-height: 50px;
   border: 1px solid #c164ff;
   border-radius: 6px;
   color: #fff;
@@ -2075,7 +2093,7 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 18px;
-  margin: 28px 0;
+  margin: 18px 0;
   color: #b8b0c7;
   font-size: 0.8rem;
 }
@@ -2089,7 +2107,7 @@
 
 .vertex-google {
   width: 100%;
-  min-height: 56px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2114,7 +2132,7 @@
 }
 
 .vertex-mode-switch {
-  margin: 28px 0 0;
+  margin: 14px 0 0;
   color: #c0b9cc;
   text-align: center;
   font-size: 0.88rem;
@@ -2168,6 +2186,8 @@
 }
 
 .auth-nav {
+  position: relative;
+  z-index: 2;
   min-height: clamp(48px, 8svh, 80px);
   display: flex;
   justify-content: space-between;
@@ -2725,6 +2745,24 @@ button:disabled {
   }
 }
 
+@media (min-width: 721px) and (max-width: 1024px) {
+  .auth-nav {
+    padding-inline: 24px;
+  }
+
+  .auth-nav nav {
+    gap: clamp(8px, 1.6vw, 18px);
+  }
+
+  .auth-nav button {
+    font-size: clamp(0.8rem, 1.3vw, 0.98rem);
+  }
+
+  .vertex-auth-stage {
+    width: calc(100% - 40px);
+  }
+}
+
 @media (max-width: 720px) {
   .auth-nav {
     align-items: flex-start;
@@ -2753,10 +2791,18 @@ button:disabled {
 
   .vertex-auth-stage {
     width: min(100% - 28px, 520px);
+    height: auto;
     min-height: auto;
     grid-template-columns: 1fr;
-    gap: 30px;
-    padding: 38px 0 78px;
+    gap: 20px;
+    padding: 20px 0 32px;
+  }
+
+  .vertex-auth-shell {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    grid-template-rows: auto auto;
   }
 
   .vertex-auth-brand {
@@ -2768,6 +2814,10 @@ button:disabled {
     max-height: none;
   }
 
+  .vertex-auth-logo .logo-asset-frame {
+    max-height: min(27dvh, 230px);
+  }
+
   .vertex-auth-brand p {
     font-size: 0.64rem;
     letter-spacing: 0.24em;
@@ -2775,11 +2825,13 @@ button:disabled {
 
   .vertex-auth-panel {
     justify-self: stretch;
-    padding: 25px 19px;
+    max-height: none;
+    overflow: visible;
+    padding: 22px 18px;
   }
 
   .vertex-auth-heading {
-    margin-bottom: 22px;
+    margin-bottom: 16px;
   }
 
   .vertex-auth-heading p {
@@ -2883,14 +2935,14 @@ button:disabled {
   .auth-nav nav {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
   }
 
   .auth-nav button {
     min-width: 0;
     padding: 6px 2px;
-    white-space: nowrap;
+    white-space: normal;
     font-size: clamp(0.72rem, 3.2vw, 0.9rem);
   }
 
@@ -3135,6 +3187,29 @@ button:disabled {
 
   .social-login {
     gap: 10px;
+  }
+}
+
+@media (min-width: 721px) and (max-height: 680px) {
+  .vertex-auth-stage {
+    gap: 20px;
+    padding-block: 10px;
+  }
+
+  .vertex-auth-logo .logo-asset-frame {
+    max-height: 48dvh;
+  }
+
+  .vertex-auth-panel {
+    padding: 18px 22px;
+  }
+
+  .vertex-auth-heading {
+    margin-bottom: 12px;
+  }
+
+  .vertex-auth-form {
+    gap: 9px;
   }
 }
 
