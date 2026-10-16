@@ -4,6 +4,7 @@ import PublicNavigation from '../components/PublicNavigation.jsx';
 import CinematicScene from '../components/CinematicScene.jsx';
 
 const contactOptions = [
+  ['admin support queries', 'admin@vertex.com', Mail],
   ['SUPPORT', 'support@vertex.com', Mail],
   ['PHONE', '+91 8639563588', Phone],
   ['LOCATION', 'India', MapPin]
