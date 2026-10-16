@@ -5,7 +5,7 @@ import CinematicScene from '../components/CinematicScene.jsx';
 
 const contactOptions = [
   ['SUPPORT', 'support@vertex.com', Mail],
-  ['PHONE', '+91 98765 43210', Phone],
+  ['PHONE', '+91 8639563588', Phone],
   ['LOCATION', 'India', MapPin]
 ];
 
