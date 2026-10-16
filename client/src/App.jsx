@@ -18,8 +18,7 @@ import AdminReportsPage from './pages/AdminReportsPage.jsx';
 import ProjectsPage from './pages/ProjectsPage.jsx';
 import RankingsPage from './pages/RankingsPage.jsx';
 import WalletPage from './pages/WalletPage.jsx';
-import NotificationsPage from './pages/NotificationsPage.jsx';
-import LegalConsentPage from './pages/LegalConsentPage.jsx';
+import NotificationsPage from './pages/NotificationsPage.jsx'
 import LoadingState from './components/LoadingState.jsx';
 import './styles/app.css';
 
