@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import LegalDocumentModal from '../components/LegalDocumentModal.jsx';
+import CinematicScene from '../components/CinematicScene.jsx';
 import { LEGAL_VERSIONS } from '../services/legal.js';
 
 export default function LegalConsentPage({ onAccepted }) {
@@ -38,6 +39,7 @@ export default function LegalConsentPage({ onAccepted }) {
 
   return (
     <main className="app legal-consent-page">
+      <CinematicScene className="app-cinematic-scene" />
       <section className="legal-consent-panel glass" aria-labelledby="legal-consent-title">
         <p className="eyebrow">VERTEX ACCOUNT</p>
         <h1 id="legal-consent-title">Review updated agreements</h1>

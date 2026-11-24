@@ -89,6 +89,15 @@ export const walletApi = {
   }
 };
 
+export const profileApi = {
+  get(token) {
+    return apiRequest('/profile', { token });
+  },
+  update(token, profile) {
+    return apiRequest('/profile', { method: 'PATCH', token, body: profile });
+  }
+};
+
 export const adminApi = {
   listAccounts(kind, token, params = {}) {
     const query = new URLSearchParams(

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { Company, User, Wallet } from '../models/index.js';
+import { createAdminSession, revokeAdminSession } from '../services/admin-session.service.js';
 import { hasLatestLegalConsent, legalRequirements, LEGAL_VERSIONS, validateLegalAcceptance, validatePolicyAcceptance } from '../services/legal.service.js';
 import { signToken } from '../services/token.service.js';
 
@@ -171,7 +172,7 @@ export async function loginCompany(req, res, next) {
   } catch (error) { next(error); }
 }
 
-export async function loginAdmin(req, res) {
+export async function loginAdmin(req, res, next) {
   try {
     const configuredUsername = process.env.ADMIN_USERNAME;
     const configuredPassword = process.env.ADMIN_PASSWORD;
@@ -188,17 +189,23 @@ export async function loginAdmin(req, res) {
       return res.status(401).json({ message: 'Invalid admin credentials' });
     }
 
+    const token = await createAdminSession(configuredUsername);
     return res.json({
       account: { id: 'env-admin', name: 'VERTEX Admin', username: configuredUsername },
-      token: signToken({ id: 'env-admin', role: 'admin', username: configuredUsername })
+      token
     });
-  } catch {
-    return res.status(401).json({ message: 'Invalid admin credentials' });
+  } catch (error) {
+    return next(error);
   }
 }
 
-export async function logoutAdmin(_req, res) {
-  res.json({ message: 'Admin logged out' });
+export async function logoutAdmin(req, res, next) {
+  try {
+    await revokeAdminSession(req.user.sid);
+    return res.json({ message: 'Admin logged out' });
+  } catch (error) {
+    return next(error);
+  }
 }
 
 export async function appleLogin(_req, res) {

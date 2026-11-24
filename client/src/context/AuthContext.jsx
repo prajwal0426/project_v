@@ -256,6 +256,16 @@ export function AuthProvider({ children }) {
     }
   }
 
+  function updateUser(accountUpdates) {
+    if (!session) return;
+    const nextSession = { ...session, user: { ...session.user, ...accountUpdates } };
+    const isAdmin = nextSession.user?.role === 'admin';
+    const storage = isAdmin ? window.sessionStorage : window.localStorage;
+    const key = isAdmin ? 'vertex.admin.session' : 'vertex.session';
+    storage.setItem(key, JSON.stringify(nextSession));
+    setSession(nextSession);
+  }
+
   const value = useMemo(
     () => ({
       user,
@@ -265,6 +275,7 @@ export function AuthProvider({ children }) {
       loginAdmin,
       register,
       acceptLatestLegal,
+      updateUser,
       logout,
       authReady,
       authError,

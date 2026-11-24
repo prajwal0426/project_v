@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import EmptyState from '../components/EmptyState.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import PageIntro from '../components/PageIntro.jsx';
+import { GlassButton, GlassInput, GlassModal, GlassTable } from '../components/GlassPrimitives.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { adminApi } from '../services/api.js';
 
@@ -175,15 +176,15 @@ export default function AdminManagementPage({ kind }) {
       <div className="admin-tools glass">
         <label>
           <Search size={16} />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or email" />
+          <GlassInput value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or email" />
         </label>
-        <select value={status} onChange={(event) => setStatus(event.target.value)}>
+        <GlassInput as="select" value={status} onChange={(event) => setStatus(event.target.value)}>
           {statusOptions.map((option) => <option value={option} key={option}>{option || 'All statuses'}</option>)}
-        </select>
-        <button className="ghost" type="button" onClick={() => loadRows()}>
+        </GlassInput>
+        <GlassButton type="button" onClick={() => loadRows()}>
           <SlidersHorizontal size={16} />
           Apply
-        </button>
+        </GlassButton>
       </div>
 
       {loading ? <LoadingState label="Loading accounts..." /> : null}
@@ -191,7 +192,7 @@ export default function AdminManagementPage({ kind }) {
       {message ? <div className="state-card glass"><p>{message}</p></div> : null}
       {error ? <EmptyState title="Admin action unavailable" message={error} /> : null}
 
-      <div className="admin-table glass">
+      <GlassTable>
         {!rows.length && !loading ? <EmptyState title={`No ${kind} found`} /> : null}
         {rows.length ? (
           <table>
@@ -246,12 +247,10 @@ export default function AdminManagementPage({ kind }) {
             </tbody>
           </table>
         ) : null}
-      </div>
+      </GlassTable>
 
       {selected ? (
-        <div className="legal-modal-layer" role="presentation" onClick={() => setSelected(null)}>
-          <article className="legal-modal glass" role="dialog" aria-modal="true" aria-labelledby="profile-title" onClick={(event) => event.stopPropagation()}>
-            <button className="auth-close icon-button" type="button" onClick={() => setSelected(null)} aria-label="Close profile">x</button>
+        <GlassModal onClose={() => setSelected(null)} labelledBy="profile-title" closeLabel="Close account profile">
             <h2 id="profile-title">{nameFor(selected, kind)}</h2>
             <p className="tagline">Complete non-sensitive profile. Passwords, hashes, tokens, and secrets are never shown.</p>
             <div className="profile-grid">
@@ -262,8 +261,7 @@ export default function AdminManagementPage({ kind }) {
                 </div>
               ))}
             </div>
-          </article>
-        </div>
+        </GlassModal>
       ) : null}
     </section>
   );

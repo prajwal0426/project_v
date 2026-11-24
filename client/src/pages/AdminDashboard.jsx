@@ -2,6 +2,8 @@ import { Building2, ClipboardList, FileText, ShieldCheck, Users, Wallet } from '
 import EmptyState from '../components/EmptyState.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import PageIntro from '../components/PageIntro.jsx';
+import GlassStatCard from '../components/GlassStatCard.jsx';
+import { GlassButton, GlassCard } from '../components/GlassPrimitives.jsx';
 import { useAppData } from '../context/AppDataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useApiResource from '../hooks/useApiResource.js';
@@ -26,33 +28,18 @@ export default function AdminDashboard({ setPage }) {
       {loading ? <LoadingState label="Loading admin dashboard..." /> : null}
       {error ? <EmptyState title="Admin dashboard unavailable" message={error} /> : null}
       <div className="metric-grid">
-        <article className="metric glass">
-          <Users />
-          <span>Users</span>
-          <strong>{Number(dashboard?.users ?? 0).toLocaleString()}</strong>
-          <small>Registered users</small>
-        </article>
-        <article className="metric glass">
-          <ShieldCheck />
-          <span>Companies</span>
-          <strong>{Number(dashboard?.companies ?? 0).toLocaleString()}</strong>
-          <small>Registered companies</small>
-        </article>
-        <article className="metric glass">
-          <Wallet />
-          <span>Pending Withdrawals (₹)</span>
-          <strong>{Number(dashboard?.pending_withdrawals ?? 0).toLocaleString()}</strong>
-          <small>Transaction queue</small>
-        </article>
+        <GlassStatCard icon={Users} label="Users" value={Number(dashboard?.users ?? 0).toLocaleString()} detail="Registered accounts" />
+        <GlassStatCard icon={ShieldCheck} label="Companies" value={Number(dashboard?.companies ?? 0).toLocaleString()} detail="Registered companies" />
+        <GlassStatCard icon={Wallet} label="Pending Withdrawals (₹)" value={`₹${Number(dashboard?.pending_withdrawals ?? 0).toLocaleString('en-IN')}`} detail="Transaction queue" />
       </div>
       <div className="admin-grid">
         {adminModules.map(({ title, page, icon: Icon, text }) => (
-          <article className="panel glass admin-module-card" key={title}>
+          <GlassCard as="article" className="panel admin-module-card" key={title}>
             <Icon />
             <h3>{title}</h3>
             <p>{text}</p>
-            <button className="ghost" type="button" onClick={() => setPage(page)}>Open</button>
-          </article>
+            <GlassButton type="button" onClick={() => setPage(page)}>Open</GlassButton>
+          </GlassCard>
         ))}
       </div>
     </section>

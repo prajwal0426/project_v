@@ -1,4 +1,4 @@
-import { Apple, Eye, EyeOff, LockKeyhole, Mail, Moon, Sun, UserRound } from 'lucide-react';
+import { Apple, ArrowRight, Eye, EyeOff, FileText, Home, Info, LockKeyhole, Mail, Moon, Rocket, ShieldCheck, Sun, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import LegalDocumentModal from '../components/LegalDocumentModal.jsx';
@@ -6,13 +6,16 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { API_BASE_URL, authApi } from '../services/api.js';
 import { LEGAL_VERSIONS } from '../services/legal.js';
 import Logo from '../components/Logo.jsx';
+import Vertex3DEmblem from '../components/Vertex3DEmblem.jsx';
+import VertexEnergyPlatform from '../components/VertexEnergyPlatform.jsx';
 import CinematicScene from '../components/CinematicScene.jsx';
+import PublicNavigation from '../components/PublicNavigation.jsx';
 
 function landingFor(role) {
   return role === 'company' ? 'company' : 'dashboard';
 }
 
-export default function LoginPage({ bright, setBright, authMode = null, onAuthenticated, onAdminLogin, onAuthNavigate }) {
+export default function LoginPage({ bright, setBright, authMode = null, onAuthenticated, onAuthNavigate }) {
   const { login, loginWithGoogle, register, authError, authLoading } = useAuth();
   const [role, setRole] = useState('user');
   const [name, setName] = useState('');
@@ -136,17 +139,11 @@ export default function LoginPage({ bright, setBright, authMode = null, onAuthen
   }
 
   return (
-    <section className={isAuthPage ? 'auth-shell vertex-auth-shell' : 'auth-shell'}>
-      <header className="auth-nav">
-        <button className="auth-brand" type="button" onClick={() => onAuthNavigate?.('home')} aria-label="Go to VERTEX home"><Logo variant="navigation" /></button>
-        <nav>
-          <button className={!isAuthPage ? 'active' : ''} type="button" onClick={() => onAuthNavigate?.('home')}>Home</button>
-          <button type="button" onClick={() => onAuthNavigate?.('about')}>About</button>
-          <button type="button" onClick={() => onAuthNavigate?.('contact')}>Contact</button>
-          <button className={isAuthPage ? 'active' : ''} type="button" onClick={() => switchMode('login')}>Login / Register</button>
-          <button type="button" onClick={onAdminLogin}>Admin Login</button>
-        </nav>
-      </header>
+    <section className={isAuthPage ? 'auth-shell vertex-auth-shell' : 'auth-shell homepage'}>
+      <PublicNavigation
+        activePage={isAuthPage ? (isRegister ? 'register' : 'login') : 'home'}
+        setPage={onAuthNavigate}
+      />
 
       <button className="auth-theme icon-button" type="button" onClick={() => setBright((value) => !value)} aria-label="Toggle theme">
         {bright ? <Moon size={18} /> : <Sun size={18} />}
@@ -228,17 +225,64 @@ export default function LoginPage({ bright, setBright, authMode = null, onAuthen
         <main className="auth-landing cinematic-home" onPointerMove={updateParallax} onPointerLeave={resetParallax}>
           <CinematicScene />
           <div className="home-hero-content">
-            <p className="home-kicker">LEARN. BUILD. EARN.</p>
-            <h1>HI THERE, WELCOME TO<br />VERTEX</h1>
-            <Logo variant="home" showText={false} className="login-logo" />
-            <button className="vertex-action home-cta" type="button" onClick={() => onAuthNavigate?.('about')}>Explore VERTEX</button>
+            <div className="home-kicker-wrapper">
+              <span className="kicker-line kicker-line-left" aria-hidden="true" />
+              <p className="home-kicker">LEARN · BUILD · EARN</p>
+              <span className="kicker-line kicker-line-right" aria-hidden="true" />
+            </div>
+
+            <div className="home-hero-title-group">
+              <h1 className="home-welcome-lead">HI THERE, WELCOME TO</h1>
+              <h2 className="home-welcome-brand">VERTEX</h2>
+            </div>
+
+            <div className="home-logo-stage">
+              <Vertex3DEmblem />
+              <div className="vertex-wordmark-container" aria-label="VERTEX">
+                <img
+                  src="/vertex-wordmark-original.png"
+                  alt="VERTEX"
+                  className="vertex-wordmark-img"
+                  draggable="false"
+                />
+              </div>
+              <VertexEnergyPlatform />
+            </div>
+
+            <button
+              className="vertex-action home-cta"
+              type="button"
+              onClick={() => onAuthNavigate?.('about')}
+              onPointerMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                e.currentTarget.style.setProperty('--btn-light-x', `${x.toFixed(1)}%`);
+                e.currentTarget.style.setProperty('--btn-light-y', `${y.toFixed(1)}%`);
+              }}
+              onPointerLeave={(e) => {
+                e.currentTarget.style.setProperty('--btn-light-x', '50%');
+                e.currentTarget.style.setProperty('--btn-light-y', '50%');
+              }}
+            >
+              <Rocket size={18} aria-hidden="true" />
+              <span>EXPLORE VERTEX</span>
+              <ArrowRight size={18} aria-hidden="true" />
+            </button>
           </div>
         </main>
       )}
 
       <footer className="auth-legal-footer">
-        <button type="button" onClick={(event) => openLegalDocument(event, 'privacy')}>Privacy Policy</button>
-        <button type="button" onClick={(event) => openLegalDocument(event, 'terms')}>Terms &amp; Conditions</button>
+        <button type="button" onClick={(event) => openLegalDocument(event, 'privacy')} className="footer-legal-link">
+          <ShieldCheck size={14} aria-hidden="true" />
+          <span>Privacy Policy</span>
+        </button>
+        <span className="footer-legal-divider" aria-hidden="true">|</span>
+        <button type="button" onClick={(event) => openLegalDocument(event, 'terms')} className="footer-legal-link">
+          <FileText size={14} aria-hidden="true" />
+          <span>Terms &amp; Conditions</span>
+        </button>
       </footer>
       <LegalDocumentModal documentType={legalDocument} onClose={() => setLegalDocument(null)} returnFocusRef={legalReturnFocusRef}
         version={legalDocument === 'privacy' ? legalVersions.privacyPolicy : legalVersions.terms} />

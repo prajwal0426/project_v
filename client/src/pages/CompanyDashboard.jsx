@@ -2,6 +2,7 @@ import { BriefcaseBusiness, CheckCircle2, Users } from 'lucide-react';
 import EmptyState from '../components/EmptyState.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import ProgressSystem from '../components/ProgressSystem.jsx';
+import GlassStatCard from '../components/GlassStatCard.jsx';
 import { useAppData } from '../context/AppDataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useApiResource from '../hooks/useApiResource.js';
@@ -34,24 +35,9 @@ export default function CompanyDashboard({ setPage }) {
       {loading ? <LoadingState label="Loading company dashboard..." /> : null}
       {error ? <EmptyState title="Company dashboard unavailable" message={error} /> : null}
       <div className="metric-grid">
-        <article className="metric glass">
-          <BriefcaseBusiness />
-          <span>Projects</span>
-          <strong>{companyProjects.length}</strong>
-          <small>Owned by this company</small>
-        </article>
-        <article className="metric glass">
-          <Users />
-          <span>Submissions</span>
-          <strong>{companyProjects.reduce((total, project) => total + Number(project?.submissions ?? 0), 0)}</strong>
-          <small>From submissions table</small>
-        </article>
-        <article className="metric glass">
-          <CheckCircle2 />
-          <span>Completed</span>
-          <strong>{completed}</strong>
-          <small>Project status</small>
-        </article>
+        <GlassStatCard icon={BriefcaseBusiness} label="Projects" value={companyProjects.length} detail="Owned by this company" />
+        <GlassStatCard icon={Users} label="Submissions" value={companyProjects.reduce((total, project) => total + Number(project?.submissions ?? 0), 0)} detail="From project records" />
+        <GlassStatCard icon={CheckCircle2} label="Completed" value={completed} detail="Project status" />
       </div>
       <div className="split-grid">
         <ProgressSystem projectProgress={projectProgress} />

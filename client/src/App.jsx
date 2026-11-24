@@ -3,7 +3,7 @@ import { AppDataProvider } from './context/AppDataContext.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
-import AppLayout from './layouts/AppLayout.jsx';
+import ResponsiveWorkspace from './ResponsiveWorkspace.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
@@ -19,36 +19,71 @@ import ProjectsPage from './pages/ProjectsPage.jsx';
 import RankingsPage from './pages/RankingsPage.jsx';
 import WalletPage from './pages/WalletPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx'
+import AdminNotificationsPage from './pages/AdminNotificationsPage.jsx';
 import LegalConsentPage from './pages/LegalConsentPage.jsx';
+import ProfilePage from './pages/ProfilePage.jsx';
 import LoadingState from './components/LoadingState.jsx';
 import './styles/app.css';
+import './styles/workspace-liquid.css';
 
 const protectedPages = {
   dashboard: UserDashboard, company: CompanyDashboard, admin: AdminDashboard,
-  projects: ProjectsPage, rankings: RankingsPage, wallet: WalletPage, notifications: NotificationsPage,
+  projects: ProjectsPage, rankings: RankingsPage, wallet: WalletPage, notifications: NotificationsPage, profile: ProfilePage,
   'admin-users': (props) => <AdminManagementPage {...props} kind="users" />,
   'admin-companies': (props) => <AdminManagementPage {...props} kind="companies" />,
-  'admin-audit': AdminAuditLogsPage, 'admin-reports': AdminReportsPage
+  'admin-audit': AdminAuditLogsPage, 'admin-reports': AdminReportsPage,
+  'admin-notifications': AdminNotificationsPage
 };
 
-const pagePaths = {
+function normalizeAdminRoutePrefix(value) {
+  const prefix = String(value || '').trim();
+  if (!prefix.startsWith('/') || prefix.startsWith('//') || /[?#\\]/.test(prefix)) return null;
+
+  const segments = prefix.split('/').filter(Boolean);
+  if (!segments.length || segments.some((segment) => !/^[a-zA-Z0-9_-]{1,64}$/.test(segment))) return null;
+  if (['about', 'contact', 'login', 'register', 'dashboard', 'company', 'projects', 'rankings', 'wallet', 'notifications', 'profile', 'admin', 'admin-login'].includes(segments[0].toLowerCase())) return null;
+
+  return `/${segments.join('/')}`;
+}
+
+const ADMIN_ROUTE_PREFIX = normalizeAdminRoutePrefix(import.meta.env.VITE_ADMIN_ROUTE_PREFIX) || '/vx-9e2c7d4a1f83b6c0';
+const publicPagePaths = {
   home: '/', about: '/about', contact: '/contact', login: '/login', register: '/register',
-  'admin-login': '/admin-login', dashboard: '/dashboard', company: '/company', admin: '/admin',
+  dashboard: '/dashboard', company: '/company',
   'legal-consent': '/legal-consent',
-  projects: '/projects', rankings: '/rankings', wallet: '/wallet', notifications: '/notifications',
-  'admin-users': '/admin/users', 'admin-companies': '/admin/companies',
-  'admin-audit': '/admin/audit-logs', 'admin-reports': '/admin/reports'
+  projects: '/projects', rankings: '/rankings', wallet: '/wallet', notifications: '/notifications', profile: '/profile',
 };
 
-const pathPages = Object.fromEntries(Object.entries(pagePaths).map(([page, path]) => [path, page]));
+const adminPagePaths = {
+  'admin-login': `${ADMIN_ROUTE_PREFIX}/login`,
+  admin: ADMIN_ROUTE_PREFIX,
+  'admin-users': `${ADMIN_ROUTE_PREFIX}/users`,
+  'admin-companies': `${ADMIN_ROUTE_PREFIX}/companies`,
+  projects: `${ADMIN_ROUTE_PREFIX}/projects`,
+  rankings: `${ADMIN_ROUTE_PREFIX}/rankings`,
+  'admin-audit': `${ADMIN_ROUTE_PREFIX}/audit-logs`,
+  'admin-reports': `${ADMIN_ROUTE_PREFIX}/reports`,
+  'admin-notifications': `${ADMIN_ROUTE_PREFIX}/notifications`
+};
+
+const pagePaths = { ...publicPagePaths, ...adminPagePaths };
+const pathPages = Object.fromEntries([
+  ...Object.entries(publicPagePaths),
+  ...Object.entries(adminPagePaths)
+].map(([page, path]) => [path, page]));
 const pageRoles = {
   dashboard: ['user'], company: ['company'], admin: ['admin'],
   projects: ['user', 'company', 'admin'], rankings: ['user', 'company', 'admin'], wallet: ['user'],
-  notifications: ['user', 'company', 'admin'], 'admin-users': ['admin'],
-  'admin-companies': ['admin'], 'admin-audit': ['admin'], 'admin-reports': ['admin']
+  notifications: ['user', 'company'], profile: ['user', 'company'], 'admin-users': ['admin'],
+  'admin-companies': ['admin'], 'admin-audit': ['admin'], 'admin-reports': ['admin'], 'admin-notifications': ['admin']
 };
 
-function pageFromPath(pathname = '/') { return pathPages[pathname] || 'not-found'; }
+function pageFromPath(pathname = '/') {
+  return pathPages[pathname] || 'not-found';
+}
+function isAdminUiPath(pathname = '') {
+  return pathname === ADMIN_ROUTE_PREFIX || pathname.startsWith(`${ADMIN_ROUTE_PREFIX}/`);
+}
 function pageForRole(role) {
   if (role === 'company') return 'company';
   if (role === 'admin') return 'admin';
@@ -61,13 +96,19 @@ function AppRoutes() {
   const [bright, setBright] = useState(false);
 
   const navigate = useCallback((nextPage, { replace = false } = {}) => {
-    const nextPath = pagePaths[nextPage] || pagePaths.home;
+    const isAdminPage = nextPage === 'admin-login' || nextPage === 'admin' || nextPage.startsWith('admin-');
+    const nextPath = user?.role === 'admin' && pagePaths[nextPage]
+      ? pagePaths[nextPage]
+      : isAdminPage
+        ? adminPagePaths[nextPage]
+        : publicPagePaths[nextPage];
+    const resolvedPath = nextPath || publicPagePaths.home;
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    if (currentPath !== nextPath) {
-      window.history[replace ? 'replaceState' : 'pushState']({ page: nextPage }, '', nextPath);
+    if (currentPath !== resolvedPath) {
+      window.history[replace ? 'replaceState' : 'pushState']({ page: nextPage }, '', resolvedPath);
     }
     setPage(nextPage);
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
     const handlePopState = () => setPage(pageFromPath(window.location.pathname));
@@ -89,8 +130,16 @@ function AppRoutes() {
       navigate('login', { replace: true });
       return;
     }
+    if (user && pageRoles[page] && !pageRoles[page].includes(user.role)) {
+      navigate(pageForRole(user.role), { replace: true });
+      return;
+    }
+    if (user?.role === 'admin' && ['projects', 'rankings'].includes(page) && window.location.pathname !== adminPagePaths[page]) {
+      navigate(page, { replace: true });
+      return;
+    }
     if (!user && pageRoles[page]) {
-      navigate(page === 'admin' || page.startsWith('admin-') ? 'admin-login' : 'login', { replace: true });
+      navigate(isAdminUiPath(window.location.pathname) || page === 'admin' || page.startsWith('admin-') ? 'admin-login' : 'login', { replace: true });
       return;
     }
     if (user && ['login', 'register', 'admin-login'].includes(page)) {
@@ -113,7 +162,7 @@ function AppRoutes() {
   if (isPublicAuthPage) {
     return <main className={bright ? 'app bright' : 'app'}><LoginPage bright={bright} setBright={setBright}
       authMode={page === 'home' ? null : page} onAuthenticated={(nextPage) => navigate(nextPage, { replace: true })}
-      onAdminLogin={() => navigate('admin-login')} onAuthNavigate={navigate}
+      onAuthNavigate={navigate}
       onCloseAuth={() => navigate('home', { replace: true })} /></main>;
   }
 
@@ -123,14 +172,14 @@ function AppRoutes() {
   }
 
   if (!user) {
-    const requiresAdminLogin = page === 'admin' || page.startsWith('admin-');
+    const requiresAdminLogin = isAdminUiPath(window.location.pathname) || page === 'admin' || page.startsWith('admin-');
     return (
       <main className={bright ? 'app bright' : 'app'}>
         {requiresAdminLogin ? (
           <AdminLoginPage bright={bright} setBright={setBright} onAuthenticated={(nextPage) => navigate(nextPage, { replace: true })} onBack={() => navigate('home')} onNavigate={navigate} />
         ) : (
           <LoginPage bright={bright} setBright={setBright} authMode="login" onAuthenticated={(nextPage) => navigate(nextPage, { replace: true })}
-            onAdminLogin={() => navigate('admin-login')} onAuthNavigate={navigate} onCloseAuth={() => navigate('home', { replace: true })} />
+            onAuthNavigate={navigate} onCloseAuth={() => navigate('home', { replace: true })} />
         )}
       </main>
     );
@@ -140,14 +189,14 @@ function AppRoutes() {
   if (!allowedRoles.includes(user.role)) {
     const fallbackPage = pageForRole(user.role);
     const FallbackPage = protectedPages[fallbackPage];
-    return <main className={bright ? 'app bright' : 'app'}><AppLayout page={fallbackPage} setPage={navigate} bright={bright} setBright={setBright} onLoggedOut={() => navigate('home', { replace: true })}>
+    return <main className={bright ? 'app bright' : 'app'}><ResponsiveWorkspace page={fallbackPage} setPage={navigate} bright={bright} setBright={setBright} onLoggedOut={() => navigate('login', { replace: true })}>
       <ProtectedRoute allowedRoles={[user.role]}><FallbackPage setPage={navigate} /></ProtectedRoute>
-    </AppLayout></main>;
+    </ResponsiveWorkspace></main>;
   }
 
-  return <main className={bright ? 'app bright' : 'app'}><AppLayout page={page} setPage={navigate} bright={bright} setBright={setBright} onLoggedOut={() => navigate('home', { replace: true })}>
+  return <main className={bright ? 'app bright' : 'app'}><ResponsiveWorkspace page={page} setPage={navigate} bright={bright} setBright={setBright} onLoggedOut={() => navigate('login', { replace: true })}>
     <ProtectedRoute allowedRoles={allowedRoles}><ActivePage setPage={navigate} /></ProtectedRoute>
-  </AppLayout></main>;
+  </ResponsiveWorkspace></main>;
 }
 
 export default function App() {

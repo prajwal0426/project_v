@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { param } from 'express-validator';
+import adminNotificationRoutes from './admin-notification.routes.js';
 import {
   forceLogoutManagedAccount,
   getManagedAccount,
@@ -22,6 +23,7 @@ const accountParams = [
 
 router.use(adminOnly);
 
+router.use('/notifications', adminNotificationRoutes);
 router.get('/audit-logs', listAuditLogs);
 router.get('/:kind', param('kind').isIn(['users', 'companies']), validate, listManagedAccounts);
 router.get('/:kind/:id', accountParams, getManagedAccount);

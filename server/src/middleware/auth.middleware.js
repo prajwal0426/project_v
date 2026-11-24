@@ -1,8 +1,9 @@
 import jwt from 'jsonwebtoken';
 import { Company, User } from '../models/index.js';
+import { isAdminSessionActive } from '../services/admin-session.service.js';
 import { hasLatestLegalConsent } from '../services/legal.service.js';
 
-export function authenticate(req, res, next) {
+export async function authenticate(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
 
@@ -11,11 +12,27 @@ export function authenticate(req, res, next) {
   }
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    const claims = jwt.verify(token, process.env.JWT_SECRET);
+    if (claims.role === 'admin' && !(await isAdminSessionActive(claims.sid))) {
+      return res.status(401).json({ message: 'Admin session is invalid or has been revoked' });
+    }
+    req.user = claims;
     return next();
-  } catch {
-    return res.status(401).json({ message: 'Invalid or expired token' });
+  } catch (error) {
+    if (error instanceof jwt.JsonWebTokenError || error instanceof jwt.NotBeforeError) {
+      return res.status(401).json({ message: 'Invalid or expired token' });
+    }
+    return next(error);
   }
+}
+
+export function authorize(...roles) {
+  return (req, res, next) => {
+    if (!roles.includes(req.user?.role)) {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    return next();
+  };
 }
 
 export async function requireActiveAccount(req, res, next) {
@@ -69,15 +86,6 @@ export function requireNoRestriction(restrictionKey) {
     const restrictions = req.accountControls?.restrictions || {};
     if (restrictions[restrictionKey]) {
       return res.status(403).json({ message: 'This action is restricted for your account.' });
-    }
-    return next();
-  };
-}
-
-export function authorize(...roles) {
-  return (req, res, next) => {
-    if (!roles.includes(req.user?.role)) {
-      return res.status(403).json({ message: 'Insufficient permissions' });
     }
     return next();
   };

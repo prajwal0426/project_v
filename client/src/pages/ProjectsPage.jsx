@@ -14,8 +14,12 @@ function coinsToInr(coins) {
 }
 
 export default function ProjectsPage() {
-  const { projects, loadProjects } = useAppData();
+  const { projects, loadProjects, projectSearch: search, setProjectSearch: setSearch } = useAppData();
   const { loading, error } = useApiResource(loadProjects, []);
+  const visibleProjects = (Array.isArray(projects) ? projects : []).filter((project) =>
+    [project?.title, project?.description, project?.difficulty, project?.status]
+      .some((value) => String(value || '').toLowerCase().includes(search.trim().toLowerCase()))
+  );
 
   return (
     <section className="page">
@@ -23,8 +27,9 @@ export default function ProjectsPage() {
       {loading ? <LoadingState label="Loading projects..." /> : null}
       {error ? <EmptyState title="Projects unavailable" message={error} /> : null}
       {!loading && !error && !projects?.length ? <EmptyState title="No projects available yet" /> : null}
+      {!loading && !error && projects?.length && !visibleProjects.length ? <EmptyState title="No matching projects" message="Try a different search." /> : null}
       <div className="card-grid">
-        {(projects || []).map((project) => (
+        {visibleProjects.map((project) => (
           <article className="item-card glass" key={project?.id || project?.title}>
             <div className="card-icon">
               <FileCheck2 />

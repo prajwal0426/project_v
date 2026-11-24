@@ -166,17 +166,53 @@ transactionSchema.index({ status: 1, createdAt: -1 });
 // ─── Notification ─────────────────────────────────────────────────────────────
 const notificationSchema = new mongoose.Schema(
   {
+    type: { type: String, enum: ['broadcast', 'individual'], default: 'individual', index: true },
     userId: { type: ObjectId, ref: 'User' },
     companyId: { type: ObjectId, ref: 'Company' },
+    recipientId: { type: ObjectId },
+    recipientRole: { type: String, enum: ['user', 'company'] },
+    audienceRoles: [{ type: String, enum: ['user', 'company'] }],
     adminId: String,
+    senderAdminId: String,
     title: { type: String, required: true, maxlength: 180 },
-    body: String,
-    isRead: { type: Boolean, default: false }
+    body: { type: String, maxlength: 10000 },
+    category: { type: String, default: 'general', maxlength: 80 },
+    priority: { type: String, enum: ['low', 'normal', 'high', 'urgent'], default: 'normal' },
+    isRead: { type: Boolean, default: false },
+    viewedAt: Date,
+    expiresAt: Date,
+    deletedAt: Date
   },
   { timestamps: true }
 );
 notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 notificationSchema.index({ companyId: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({ recipientRole: 1, recipientId: 1, createdAt: -1 });
+notificationSchema.index({ type: 1, audienceRoles: 1, expiresAt: 1, createdAt: -1 });
+notificationSchema.index({ expiresAt: 1 });
+
+const notificationReceiptSchema = new mongoose.Schema(
+  {
+    notificationId: { type: ObjectId, ref: 'Notification', required: true },
+    recipientId: { type: ObjectId, required: true },
+    recipientRole: { type: String, enum: ['user', 'company'], required: true },
+    viewedAt: { type: Date, required: true, default: Date.now }
+  },
+  { timestamps: true }
+);
+notificationReceiptSchema.index({ notificationId: 1, recipientRole: 1, recipientId: 1 }, { unique: true });
+notificationReceiptSchema.index({ recipientRole: 1, recipientId: 1, viewedAt: -1 });
+
+const adminSessionSchema = new mongoose.Schema(
+  {
+    sessionIdHash: { type: String, required: true, unique: true, select: false },
+    username: { type: String, required: true },
+    expiresAt: { type: Date, required: true },
+    revokedAt: Date
+  },
+  { timestamps: true }
+);
+adminSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // ─── AdminAuditLog ────────────────────────────────────────────────────────────
 const auditLogSchema = new mongoose.Schema(
@@ -214,5 +250,7 @@ export const Ranking = mongoose.model('Ranking', rankingSchema);
 export const Wallet = mongoose.model('Wallet', walletSchema);
 export const Transaction = mongoose.model('Transaction', transactionSchema);
 export const Notification = mongoose.model('Notification', notificationSchema);
+export const NotificationReceipt = mongoose.model('NotificationReceipt', notificationReceiptSchema);
+export const AdminSession = mongoose.model('AdminSession', adminSessionSchema);
 export const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 export const PasswordReset = mongoose.model('PasswordReset', passwordResetSchema);

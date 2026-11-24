@@ -2,6 +2,7 @@ import { Eye, EyeOff, LockKeyhole, Moon, ShieldCheck, Sun, UserRound } from 'luc
 import { useState } from 'react';
 import CinematicScene from '../components/CinematicScene.jsx';
 import Logo from '../components/Logo.jsx';
+import PublicNavigation from '../components/PublicNavigation.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function AdminLoginPage({ bright, setBright, onAuthenticated, onBack, onNavigate }) {
@@ -43,16 +44,7 @@ export default function AdminLoginPage({ bright, setBright, onAuthenticated, onB
 
   return (
     <section className="auth-shell vertex-auth-shell admin-auth-shell">
-      <header className="auth-nav">
-        <button className="auth-brand" type="button" onClick={() => navigate('home')} aria-label="Go to VERTEX home"><Logo variant="navigation" /></button>
-        <nav>
-          <button type="button" onClick={() => navigate('home')}>Home</button>
-          <button type="button" onClick={() => navigate('about')}>About</button>
-          <button type="button" onClick={() => navigate('contact')}>Contact</button>
-          <button type="button" onClick={() => navigate('login')}>Login / Register</button>
-          <button className="active" type="button" onClick={() => navigate('admin-login')}>Admin Login</button>
-        </nav>
-      </header>
+      <PublicNavigation activePage="admin-login" setPage={navigate} />
 
       <button className="auth-theme icon-button" type="button" onClick={() => setBright((value) => !value)} aria-label="Toggle theme">
         {bright ? <Moon size={18} /> : <Sun size={18} />}

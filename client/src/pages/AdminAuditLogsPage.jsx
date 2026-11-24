@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import EmptyState from '../components/EmptyState.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import PageIntro from '../components/PageIntro.jsx';
+import { GlassTable } from '../components/GlassPrimitives.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { adminApi } from '../services/api.js';
 
@@ -49,7 +50,7 @@ export default function AdminAuditLogsPage() {
       <PageIntro icon={ClipboardList} title="Audit Logs" text="Review admin actions for users and companies." />
       {loading ? <LoadingState label="Loading audit logs..." /> : null}
       {error ? <EmptyState title="Audit logs unavailable" message={error} /> : null}
-      <div className="admin-table glass">
+      <GlassTable>
         {!rows.length && !loading ? <EmptyState title="No audit logs yet" /> : null}
         {rows.length ? (
           <table>
@@ -75,7 +76,7 @@ export default function AdminAuditLogsPage() {
             </tbody>
           </table>
         ) : null}
-      </div>
+      </GlassTable>
     </section>
   );
 }

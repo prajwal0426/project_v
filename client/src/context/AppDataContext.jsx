@@ -1,5 +1,7 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { dashboardApi, projectApi, rankingApi, walletApi } from '../services/api.js';
+import { useAuth } from './AuthContext.jsx';
+import { notificationsApi } from '../services/notifications.js';
 
 const AppDataContext = createContext(null);
 
@@ -45,6 +47,7 @@ function normalizeNotification(notification = {}) {
 }
 
 export function AppDataProvider({ children }) {
+  const { authReady, token, user } = useAuth();
   const [wallet, setWallet] = useState({
     coins: 0,
     inr: 0,
@@ -53,14 +56,55 @@ export function AppDataProvider({ children }) {
   const [rankings, setRankings] = useState([]);
   const [projects, setProjects] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [notificationUnreadCount, setNotificationUnreadCount] = useState(0);
   const [dashboard, setDashboard] = useState(null);
+  const [projectSearch, setProjectSearch] = useState('');
+
+  useEffect(() => {
+    if (!authReady) return undefined;
+    if (!token || !['user', 'company'].includes(user?.role)) {
+      setNotifications([]);
+      setNotificationUnreadCount(0);
+      return undefined;
+    }
+
+    let active = true;
+    let pending = false;
+    const refreshNotifications = async () => {
+      if (!active || pending || document.visibilityState === 'hidden') return;
+      pending = true;
+      try {
+        const response = await notificationsApi.list(token, { limit: 10 });
+        if (!active) return;
+        if (window.location.pathname !== '/notifications') {
+          setNotifications(Array.isArray(response?.rows) ? response.rows : []);
+        }
+        setNotificationUnreadCount(Number(response?.unreadCount || 0));
+      } catch {
+        // Keep the last successful notification state while the API is temporarily unavailable.
+      } finally {
+        pending = false;
+      }
+    };
+
+    refreshNotifications();
+    const interval = window.setInterval(refreshNotifications, 15000);
+    document.addEventListener('visibilitychange', refreshNotifications);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', refreshNotifications);
+    };
+  }, [authReady, token, user?.role]);
 
   function resetData() {
     setWallet(emptyWallet);
     setRankings([]);
     setProjects([]);
     setNotifications([]);
+    setNotificationUnreadCount(0);
     setDashboard(null);
+    setProjectSearch('');
   }
 
   async function loadProjects() {
@@ -98,12 +142,14 @@ export function AppDataProvider({ children }) {
     if (!role || !token) {
       setDashboard(null);
       setNotifications([]);
+      setNotificationUnreadCount(0);
       return null;
     }
 
     const response = await dashboardApi.get(role, token);
     setDashboard(response || null);
     setNotifications(Array.isArray(response?.notifications) ? response.notifications.map(normalizeNotification) : []);
+    setNotificationUnreadCount(Number(response?.unreadCount ?? 0));
 
     if (Array.isArray(response?.projects)) {
       setProjects(response.projects.map(normalizeProject));
@@ -127,18 +173,22 @@ export function AppDataProvider({ children }) {
       rankings,
       projects,
       notifications,
+      notificationUnreadCount,
       dashboard,
+      projectSearch,
+      setProjectSearch,
       setWallet,
       setRankings,
       setProjects,
       setNotifications,
+      setNotificationUnreadCount,
       resetData,
       loadProjects,
       loadRankings,
       loadWallet,
       loadDashboard
     }),
-    [wallet, rankings, projects, notifications, dashboard]
+    [wallet, rankings, projects, notifications, notificationUnreadCount, dashboard, projectSearch]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
