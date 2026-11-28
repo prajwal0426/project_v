@@ -1,4 +1,4 @@
-import { Building2, ClipboardList, FileText, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { Building2, ClipboardList, FileText, ShieldAlert, ShieldCheck, Users, Wallet } from 'lucide-react';
 import EmptyState from '../components/EmptyState.jsx';
 import LoadingState from '../components/LoadingState.jsx';
 import PageIntro from '../components/PageIntro.jsx';
@@ -7,6 +7,7 @@ import { GlassButton, GlassCard } from '../components/GlassPrimitives.jsx';
 import { useAppData } from '../context/AppDataContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import useApiResource from '../hooks/useApiResource.js';
+import '../styles/admin-device-notice.css';
 
 const adminModules = [
   { title: 'User Management', page: 'admin-users', icon: Users, text: 'View users, block access, manage restrictions, force logout, and request password resets.' },
@@ -18,13 +19,20 @@ const adminModules = [
 ];
 
 export default function AdminDashboard({ setPage }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { dashboard, loadDashboard } = useAppData();
   const { loading, error } = useApiResource(() => loadDashboard('admin', token), [token]);
 
   return (
     <section className="page">
       <PageIntro icon={ShieldCheck} title="Admin Dashboard" text="Operate VERTEX with user, company, payment, analytics, and report controls." />
+      {user?.deviceRegistered ? (
+        <GlassCard as="aside" className="admin-device-login-notice" role="status">
+          <ShieldAlert size={19} aria-hidden="true" />
+          <p>A new Admin device was authorized. Review your device and security activity.</p>
+          <GlassButton type="button" onClick={() => setPage('admin-security')}>Review devices</GlassButton>
+        </GlassCard>
+      ) : null}
       {loading ? <LoadingState label="Loading admin dashboard..." /> : null}
       {error ? <EmptyState title="Admin dashboard unavailable" message={error} /> : null}
       <div className="metric-grid">

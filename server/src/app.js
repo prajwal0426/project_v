@@ -1,4 +1,5 @@
-import './config/env.js';
+import { EMAIL_VERIFICATION_SETTING_SOURCE } from './config/env.js';
+import { isEmailVerificationEnabled } from './config/email-verification.js';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -33,6 +34,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 async function start() {
+  console.info(`VERTEX email verification: ${isEmailVerificationEnabled() ? 'enabled' : 'disabled'} (source: ${EMAIL_VERIFICATION_SETTING_SOURCE})`);
   await connectDB();
   startRankingCron();
 

@@ -8,6 +8,8 @@ import LoginPage from './pages/LoginPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import AboutPage from './pages/AboutPage.jsx';
 import ContactPage from './pages/ContactPage.jsx';
+import FeaturesPage from './pages/FeaturesPage.jsx';
+import EcosystemPage from './pages/EcosystemPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import UserDashboard from './pages/UserDashboard.jsx';
 import CompanyDashboard from './pages/CompanyDashboard.jsx';
@@ -15,6 +17,7 @@ import AdminDashboard from './pages/AdminDashboard.jsx';
 import AdminAuditLogsPage from './pages/AdminAuditLogsPage.jsx';
 import AdminManagementPage from './pages/AdminManagementPage.jsx';
 import AdminReportsPage from './pages/AdminReportsPage.jsx';
+import AdminSecurityPage from './pages/AdminSecurityPage.jsx';
 import ProjectsPage from './pages/ProjectsPage.jsx';
 import RankingsPage from './pages/RankingsPage.jsx';
 import WalletPage from './pages/WalletPage.jsx';
@@ -32,6 +35,7 @@ const protectedPages = {
   'admin-users': (props) => <AdminManagementPage {...props} kind="users" />,
   'admin-companies': (props) => <AdminManagementPage {...props} kind="companies" />,
   'admin-audit': AdminAuditLogsPage, 'admin-reports': AdminReportsPage,
+  'admin-security': AdminSecurityPage,
   'admin-notifications': AdminNotificationsPage
 };
 
@@ -48,7 +52,7 @@ function normalizeAdminRoutePrefix(value) {
 
 const ADMIN_ROUTE_PREFIX = normalizeAdminRoutePrefix(import.meta.env.VITE_ADMIN_ROUTE_PREFIX) || '/vx-9e2c7d4a1f83b6c0';
 const publicPagePaths = {
-  home: '/', about: '/about', contact: '/contact', login: '/login', register: '/register',
+  home: '/', about: '/about', contact: '/contact', features: '/features', ecosystem: '/ecosystem', login: '/login', register: '/register',
   dashboard: '/dashboard', company: '/company',
   'legal-consent': '/legal-consent',
   projects: '/projects', rankings: '/rankings', wallet: '/wallet', notifications: '/notifications', profile: '/profile',
@@ -63,6 +67,7 @@ const adminPagePaths = {
   rankings: `${ADMIN_ROUTE_PREFIX}/rankings`,
   'admin-audit': `${ADMIN_ROUTE_PREFIX}/audit-logs`,
   'admin-reports': `${ADMIN_ROUTE_PREFIX}/reports`,
+  'admin-security': `${ADMIN_ROUTE_PREFIX}/security`,
   'admin-notifications': `${ADMIN_ROUTE_PREFIX}/notifications`
 };
 
@@ -75,7 +80,8 @@ const pageRoles = {
   dashboard: ['user'], company: ['company'], admin: ['admin'],
   projects: ['user', 'company', 'admin'], rankings: ['user', 'company', 'admin'], wallet: ['user'],
   notifications: ['user', 'company'], profile: ['user', 'company'], 'admin-users': ['admin'],
-  'admin-companies': ['admin'], 'admin-audit': ['admin'], 'admin-reports': ['admin'], 'admin-notifications': ['admin']
+  'admin-companies': ['admin'], 'admin-audit': ['admin'], 'admin-reports': ['admin'],
+  'admin-security': ['admin'], 'admin-notifications': ['admin']
 };
 
 function pageFromPath(pathname = '/') {
@@ -158,6 +164,8 @@ function AppRoutes() {
   if (page === 'not-found') return <main className={bright ? 'app bright' : 'app'}><NotFoundPage setPage={navigate} /></main>;
   if (page === 'about') return <main className={bright ? 'app bright' : 'app'}><AboutPage setPage={navigate} /></main>;
   if (page === 'contact') return <main className={bright ? 'app bright' : 'app'}><ContactPage setPage={navigate} /></main>;
+  if (page === 'features') return <main className={bright ? 'app bright' : 'app'}><FeaturesPage setPage={navigate} /></main>;
+  if (page === 'ecosystem') return <main className={bright ? 'app bright' : 'app'}><EcosystemPage setPage={navigate} /></main>;
 
   if (isPublicAuthPage) {
     return <main className={bright ? 'app bright' : 'app'}><LoginPage bright={bright} setBright={setBright}

@@ -1,0 +1,9 @@
+.admin-device-login-notice { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-color: rgba(181, 107, 255, 0.38); }
+.admin-device-login-notice > svg { flex: 0 0 auto; color: #bd8cff; }
+.admin-device-login-notice p { flex: 1; margin: 0; color: var(--text); }
+.admin-device-login-notice button { flex: 0 0 auto; }
+@media (max-width: 600px) {
+  .admin-device-login-notice { flex-wrap: wrap; }
+  .admin-device-login-notice p { flex-basis: calc(100% - 34px); }
+  .admin-device-login-notice button { margin-left: 30px; }
+}

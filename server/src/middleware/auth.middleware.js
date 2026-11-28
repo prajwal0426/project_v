@@ -3,6 +3,21 @@ import { Company, User } from '../models/index.js';
 import { isAdminSessionActive } from '../services/admin-session.service.js';
 import { hasLatestLegalConsent } from '../services/legal.service.js';
 
+const ADMIN_DEVICE_COOKIE = 'vertex_admin_device';
+
+function readCookie(cookieHeader = '', name) {
+  for (const part of String(cookieHeader).split(';')) {
+    const separator = part.indexOf('=');
+    if (separator < 0 || part.slice(0, separator).trim() !== name) continue;
+    try {
+      return decodeURIComponent(part.slice(separator + 1).trim());
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 export async function authenticate(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -13,8 +28,13 @@ export async function authenticate(req, res, next) {
 
   try {
     const claims = jwt.verify(token, process.env.JWT_SECRET);
-    if (claims.role === 'admin' && !(await isAdminSessionActive(claims.sid))) {
-      return res.status(401).json({ message: 'Admin session is invalid or has been revoked' });
+    if (claims.role === 'admin' && !(await isAdminSessionActive({
+      sessionId: claims.sid,
+      deviceId: claims.deviceId,
+      deviceToken: readCookie(req.headers.cookie, ADMIN_DEVICE_COOKIE),
+      userAgent: req.get('user-agent')
+    }))) {
+      return res.status(401).json({ message: 'Admin session or authorized device is invalid or has been revoked' });
     }
     req.user = claims;
     return next();

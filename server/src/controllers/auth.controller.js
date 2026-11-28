@@ -2,8 +2,13 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { Company, User, Wallet } from '../models/index.js';
+import { isEmailVerificationEnabled } from '../config/email-verification.js';
+import { registerOrAuthorizeAdminDevice, revokeAdminDevice } from '../services/admin-device.service.js';
 import { createAdminSession, revokeAdminSession } from '../services/admin-session.service.js';
 import { hasLatestLegalConsent, legalRequirements, LEGAL_VERSIONS, validateLegalAcceptance, validatePolicyAcceptance } from '../services/legal.service.js';
+import { removeRegistrationFile, storeVerifiedRegistrationFile } from '../services/registration-file.service.js';
+import { consumeRegistrationOtp, issueRegistrationOtp } from '../services/registration-otp.service.js';
+import { clearRegistrationSessionCookie, readRegistrationSession, setRegistrationSessionCookie } from './registration-otp.controller.js';
 import { signToken } from '../services/token.service.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -34,10 +39,15 @@ function assertAccountCanAuthenticate(account) {
   }
 }
 
-async function createAccount({ Model, role, body, idFilePath }) {
+async function createAccount({ Model, role, body, file, registrationSession }) {
   const legalConsent = validateLegalAcceptance(body);
 
   if (role === 'user') assertAdult(body.dateOfBirth);
+
+  if (isEmailVerificationEnabled()) {
+    await consumeRegistrationOtp({ email: body.email, otp: body.otp, sessionToken: registrationSession });
+  }
+  const idFilePath = await storeVerifiedRegistrationFile(file);
 
   const passwordHash = await bcrypt.hash(body.password, 12);
 
@@ -60,7 +70,13 @@ async function createAccount({ Model, role, body, idFilePath }) {
     fields.verificationFile = idFilePath;
   }
 
-  const account = await Model.create(fields);
+  let account;
+  try {
+    account = await Model.create(fields);
+  } catch (error) {
+    await removeRegistrationFile(idFilePath);
+    throw error;
+  }
   const owner = role === 'company' ? { companyId: account._id } : { userId: account._id };
   await Wallet.updateOne(owner, { $setOnInsert: owner }, { upsert: true, setDefaultsOnInsert: true });
   return {
@@ -94,23 +110,35 @@ async function loginAccount({ Model, role, email, password }) {
 }
 
 export function getLegalRequirements(_req, res) {
+  res.set('Cache-Control', 'no-store');
   return res.json({
     privacyPolicyVersion: LEGAL_VERSIONS.privacyPolicy,
-    termsVersion: LEGAL_VERSIONS.terms
+    termsVersion: LEGAL_VERSIONS.terms,
+    emailVerificationRequired: isEmailVerificationEnabled()
   });
 }
 
 export async function getAuthSession(req, res, next) {
   try {
     if (req.user.role === 'admin') {
-      return res.json({ account: { id: req.user.id, name: 'VERTEX Admin', username: req.user.username, role: 'admin' } });
+      return res.json({ account: {
+        id: req.user.id,
+        name: 'VERTEX Admin',
+        username: req.user.username,
+        role: 'admin',
+        deviceId: req.user.deviceId
+      } });
     }
 
     if (req.user.role === 'google-pending') {
+      const emailVerificationRequired = isEmailVerificationEnabled();
       return res.json({
         account: {
           id: null, name: req.user.name, email: req.user.email, role: 'user',
           consentRequired: true,
+          emailVerificationRequired,
+          emailVerificationExpiresAt: req.user.emailVerificationExpiresAt,
+          emailVerificationResendAvailableAt: req.user.emailVerificationResendAvailableAt,
           legalRequirements: { ...legalRequirements(null), ageConfirmationRequired: true }
         }
       });
@@ -150,7 +178,15 @@ function timingSafeEqualText(left = '', right = '') {
 
 export async function registerUser(req, res, next) {
   try {
-    res.status(201).json(await createAccount({ Model: User, role: 'user', body: req.body, idFilePath: req.file?.path }));
+    const result = await createAccount({
+      Model: User,
+      role: 'user',
+      body: req.body,
+      file: req.file,
+      registrationSession: readRegistrationSession(req.headers.cookie)
+    });
+    clearRegistrationSessionCookie(res);
+    res.status(201).json(result);
   } catch (error) { next(error); }
 }
 
@@ -162,7 +198,15 @@ export async function loginUser(req, res, next) {
 
 export async function registerCompany(req, res, next) {
   try {
-    res.status(201).json(await createAccount({ Model: Company, role: 'company', body: req.body, idFilePath: req.file?.path }));
+    const result = await createAccount({
+      Model: Company,
+      role: 'company',
+      body: req.body,
+      file: req.file,
+      registrationSession: readRegistrationSession(req.headers.cookie)
+    });
+    clearRegistrationSessionCookie(res);
+    res.status(201).json(result);
   } catch (error) { next(error); }
 }
 
@@ -189,12 +233,47 @@ export async function loginAdmin(req, res, next) {
       return res.status(401).json({ message: 'Invalid admin credentials' });
     }
 
-    const token = await createAdminSession(configuredUsername);
+    const registration = await registerOrAuthorizeAdminDevice({
+      deviceToken: readAdminDeviceCookie(req.headers.cookie),
+      username: configuredUsername,
+      userAgent: req.get('user-agent')
+    });
+
+    let token;
+    try {
+      token = await createAdminSession(configuredUsername, registration.device._id);
+    } catch (error) {
+      if (registration.newlyRegistered) {
+        await revokeAdminDevice(registration.device._id, configuredUsername);
+      }
+      throw error;
+    }
+
+    const sameSite = ['strict', 'lax', 'none'].includes(String(process.env.ADMIN_DEVICE_COOKIE_SAME_SITE || '').toLowerCase())
+      ? String(process.env.ADMIN_DEVICE_COOKIE_SAME_SITE).toLowerCase()
+      : process.env.NODE_ENV === 'production' ? 'none' : 'lax';
+    res.cookie('vertex_admin_device', registration.deviceToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production' || sameSite === 'none',
+      sameSite,
+      path: '/api',
+      maxAge: 365 * 24 * 60 * 60 * 1000
+    });
     return res.json({
-      account: { id: 'env-admin', name: 'VERTEX Admin', username: configuredUsername },
-      token
+      account: {
+        id: 'env-admin',
+        name: 'VERTEX Admin',
+        username: configuredUsername,
+        role: 'admin',
+        deviceId: String(registration.device._id)
+      },
+      token,
+      deviceRegistered: registration.newlyRegistered
     });
   } catch (error) {
+    if (error.code === 'ADMIN_DEVICE_LIMIT_REACHED') {
+      return res.status(403).json({ message: error.message });
+    }
     return next(error);
   }
 }
@@ -206,6 +285,19 @@ export async function logoutAdmin(req, res, next) {
   } catch (error) {
     return next(error);
   }
+}
+
+function readAdminDeviceCookie(cookieHeader = '') {
+  for (const part of String(cookieHeader).split(';')) {
+    const separator = part.indexOf('=');
+    if (separator < 0 || part.slice(0, separator).trim() !== 'vertex_admin_device') continue;
+    try {
+      return decodeURIComponent(part.slice(separator + 1).trim());
+    } catch {
+      return null;
+    }
+  }
+  return null;
 }
 
 export async function appleLogin(_req, res) {
@@ -250,31 +342,32 @@ export async function googleLogin(req, res, next) {
     let user = await User.findOne({ $or: [{ googleSubject }, { email: email.toLowerCase() }] }).select('+googleSubject');
 
     if (!user) {
-      const hasExplicitConsent = req.body.privacyPolicyAccepted === true || req.body.privacyPolicyAccepted === 'true';
-      const hasExplicitTerms = req.body.termsAccepted === true || req.body.termsAccepted === 'true';
-      const hasExplicitAge = req.body.ageConfirmed === true || req.body.ageConfirmed === 'true';
-      if (hasExplicitConsent && hasExplicitTerms && hasExplicitAge) {
-        const legalConsent = validateLegalAcceptance(req.body);
-        user = await User.create({
-          name, email: email.toLowerCase(), googleSubject,
-          privacyPolicyAccepted: legalConsent.privacyPolicyAccepted,
-          termsAccepted: legalConsent.termsAccepted,
-          ageConfirmed: legalConsent.ageConfirmed,
-          legalAcceptedAt: new Date(),
-          privacyPolicyVersion: LEGAL_VERSIONS.privacyPolicy,
-          termsVersion: LEGAL_VERSIONS.terms
-        });
-        await Wallet.updateOne({ userId: user._id }, { $setOnInsert: { userId: user._id } }, { upsert: true, setDefaultsOnInsert: true });
-      } else {
-        const token = signToken(
-          { role: 'google-pending', googleSubject, email: email.toLowerCase(), name },
-          { expiresIn: '15m' }
-        );
-        return res.json({
-          token,
-          account: { id: null, name, email: email.toLowerCase(), consentRequired: true, legalRequirements: { ...legalRequirements(null), ageConfirmationRequired: true } }
-        });
+      const verification = await issueRegistrationOtp({ email });
+      if (verification.verificationRequired) {
+        setRegistrationSessionCookie(res, verification.sessionToken);
       }
+      const token = signToken({
+        role: 'google-pending',
+        googleSubject,
+        email: email.toLowerCase(),
+        name,
+        emailVerificationRequired: verification.verificationRequired,
+        emailVerificationExpiresAt: verification.expiresAt,
+        emailVerificationResendAvailableAt: verification.resendAvailableAt
+      }, { expiresIn: '1h' });
+      return res.json({
+        token,
+        account: {
+          id: null,
+          name,
+          email: email.toLowerCase(),
+          consentRequired: true,
+          emailVerificationRequired: verification.verificationRequired,
+          emailVerificationExpiresAt: verification.expiresAt,
+          emailVerificationResendAvailableAt: verification.resendAvailableAt,
+          legalRequirements: { ...legalRequirements(null), ageConfirmationRequired: true }
+        }
+      });
     } else if (!user.googleSubject || user.googleSubject !== googleSubject) {
       return res.status(401).json({ message: 'Google account does not match this VERTEX account' });
     }
@@ -303,6 +396,13 @@ export async function acceptLatestLegal(req, res, next) {
       if (!req.user.googleSubject || !req.user.email || !req.user.name) {
         return res.status(401).json({ message: 'Google consent session is invalid or expired' });
       }
+      if (isEmailVerificationEnabled()) {
+        await consumeRegistrationOtp({
+          email: req.user.email,
+          otp: req.body.otp,
+          sessionToken: readRegistrationSession(req.headers.cookie)
+        });
+      }
       const user = await User.create({
         name: req.user.name,
         email: req.user.email,
@@ -315,6 +415,7 @@ export async function acceptLatestLegal(req, res, next) {
         termsVersion: LEGAL_VERSIONS.terms
       });
       await Wallet.updateOne({ userId: user._id }, { $setOnInsert: { userId: user._id } }, { upsert: true, setDefaultsOnInsert: true });
+      clearRegistrationSessionCookie(res);
       return res.status(201).json({
         account: { id: user._id, name: user.name, email: user.email, role: 'user', consentRequired: false },
         token: signToken({ id: user._id, role: 'user', email: user.email, tokenVersion: user.tokenVersion || 0 })

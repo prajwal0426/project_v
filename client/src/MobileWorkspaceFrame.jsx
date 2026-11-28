@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Bell, BriefcaseBusiness, Building2, ChevronUp, ClipboardList, FileText, Home,
-  LayoutDashboard, LogOut, Moon, MoreHorizontal, Trophy, UserRound, Users, Wallet, X, Sun
+  LayoutDashboard, LogOut, Moon, MoreHorizontal, ShieldCheck, Trophy, UserRound, Users, Wallet, X, Sun
 } from 'lucide-react';
 import LegalDocumentModal from './components/LegalDocumentModal.jsx';
 import Logo from './components/Logo.jsx';
@@ -14,7 +14,7 @@ const pageTitles = {
   dashboard: 'Dashboard', company: 'Company', admin: 'Overview', projects: 'Projects',
   rankings: 'Rankings', wallet: 'Wallet', notifications: 'Notifications', profile: 'Profile',
   'admin-users': 'Users', 'admin-companies': 'Companies', 'admin-notifications': 'Notifications',
-  'admin-reports': 'Reports', 'admin-audit': 'Audit logs'
+  'admin-reports': 'Reports', 'admin-audit': 'Audit logs', 'admin-security': 'Security & Devices'
 };
 
 const tabSets = {
@@ -48,7 +48,8 @@ const extraPages = {
     { id: 'admin-companies', label: 'Company management', icon: Building2 },
     { id: 'rankings', label: 'Rankings', icon: Trophy },
     { id: 'admin-reports', label: 'Reports', icon: FileText },
-    { id: 'admin-audit', label: 'Audit logs', icon: ClipboardList }
+    { id: 'admin-audit', label: 'Audit logs', icon: ClipboardList },
+    { id: 'admin-security', label: 'Security & devices', icon: ShieldCheck }
   ]
 };
 

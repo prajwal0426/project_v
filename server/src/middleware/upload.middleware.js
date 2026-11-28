@@ -9,12 +9,14 @@ const storage = multer.diskStorage({
   }
 });
 
-export const upload = multer({
-  storage,
+const options = {
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = ['.pdf', '.png', '.jpg', '.jpeg', '.webp', '.zip'];
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, allowed.includes(ext));
   }
-});
+};
+
+export const upload = multer({ storage, ...options });
+export const registrationUpload = multer({ storage: multer.memoryStorage(), ...options });

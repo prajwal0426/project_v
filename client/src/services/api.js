@@ -26,6 +26,7 @@ export async function apiRequest(path, options = {}) {
     return await parseResponse(
       await fetch(`${API_BASE_URL}${path}`, {
         ...options,
+        credentials: options.credentials ?? 'include',
         headers,
         body: body instanceof FormData || typeof body === 'string' || body === undefined ? body : JSON.stringify(body)
       })
@@ -44,6 +45,12 @@ export const authApi = {
   },
   legalRequirements() {
     return apiRequest('/auth/legal-requirements');
+  },
+  startRegistrationOtp(body) {
+    return apiRequest('/auth/registration-otp', { method: 'POST', body });
+  },
+  resendRegistrationOtp(body) {
+    return apiRequest('/auth/registration-otp/resend', { method: 'POST', body });
   },
   acceptLegal(token, consent) {
     return apiRequest('/auth/legal-consent', { method: 'PATCH', token, body: consent });
@@ -99,6 +106,12 @@ export const profileApi = {
 };
 
 export const adminApi = {
+  devices(token) {
+    return apiRequest('/admin/devices', { token });
+  },
+  revokeDevice(deviceId, token) {
+    return apiRequest(`/admin/devices/${encodeURIComponent(deviceId)}`, { method: 'DELETE', token });
+  },
   listAccounts(kind, token, params = {}) {
     const query = new URLSearchParams(
       Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== '')

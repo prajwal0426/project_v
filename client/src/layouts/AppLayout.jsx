@@ -12,6 +12,7 @@ const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['user'] },
   { id: 'company', label: 'Company', icon: BriefcaseBusiness, roles: ['company'] },
   { id: 'admin', label: 'Overview', icon: ShieldCheck, roles: ['admin'] },
+  { id: 'admin-security', label: 'Security & Devices', icon: ShieldCheck, roles: ['admin'] },
   { id: 'admin-users', label: 'Users', icon: Users, roles: ['admin'] },
   { id: 'admin-companies', label: 'Companies', icon: Building2, roles: ['admin'] },
   { id: 'projects', label: 'Projects', icon: BriefcaseBusiness, roles: ['user', 'company', 'admin'] },
@@ -28,6 +29,7 @@ const pageTitles = {
   'admin-users': 'User Management',
   'admin-companies': 'Company Management',
   'admin-notifications': 'Notification Management',
+  'admin-security': 'Security & Devices',
   'admin-reports': 'Reports',
   'admin-audit': 'Audit Logs'
 };

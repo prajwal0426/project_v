@@ -7,6 +7,7 @@
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
     "test": "node --test",
+    "admin:devices:recover": "node scripts/recover-admin-devices.js",
     "migrate:postgres": "node scripts/migrate-postgres-to-mongo.js"
   },
   "dependencies": {
@@ -23,6 +24,7 @@
     "mongoose": "^9.9.4",
     "multer": "^2.1.1",
     "node-cron": "^3.0.3",
+    "nodemailer": "^10.6.1",
     "pg": "^8.21.0"
   },
   "devDependencies": {

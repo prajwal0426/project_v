@@ -127,7 +127,8 @@ export function AuthProvider({ children }) {
         token: response?.token || '',
         user: {
           ...(response?.account || {}),
-          role: 'admin'
+          role: 'admin',
+          deviceRegistered: Boolean(response?.deviceRegistered)
         }
       };
 
@@ -158,7 +159,8 @@ export function AuthProvider({ children }) {
     termsAccepted,
     ageConfirmed,
     privacyPolicyVersion,
-    termsVersion
+    termsVersion,
+    otp
   }) {
     setAuthLoading(true);
     setAuthError('');
@@ -187,6 +189,9 @@ export function AuthProvider({ children }) {
       );
       formData.append('privacyPolicyVersion', privacyPolicyVersion);
       formData.append('termsVersion', termsVersion);
+      if (typeof otp === 'string' && otp.length > 0) {
+        formData.append('otp', otp);
+      }
 
       const response = await authApi.register(role, formData);
 

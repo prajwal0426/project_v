@@ -206,6 +206,7 @@ notificationReceiptSchema.index({ recipientRole: 1, recipientId: 1, viewedAt: -1
 const adminSessionSchema = new mongoose.Schema(
   {
     sessionIdHash: { type: String, required: true, unique: true, select: false },
+    deviceId: { type: ObjectId, required: true, index: true },
     username: { type: String, required: true },
     expiresAt: { type: Date, required: true },
     revokedAt: Date
@@ -213,6 +214,45 @@ const adminSessionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 adminSessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+adminSessionSchema.index({ deviceId: 1, revokedAt: 1, expiresAt: 1 });
+
+const adminDeviceSchema = new mongoose.Schema(
+  {
+    adminKey: { type: String, required: true, default: 'env-admin' },
+    slot: { type: Number, required: true, min: 0, max: 2 },
+    deviceTokenHash: { type: String, required: true, unique: true, select: false },
+    name: { type: String, required: true, maxlength: 160 },
+    browser: { type: String, required: true, maxlength: 80 },
+    operatingSystem: { type: String, required: true, maxlength: 80 },
+    userAgentHash: { type: String, required: true, select: false },
+    status: { type: String, enum: ['active', 'revoked'], default: 'active', index: true },
+    registeredAt: { type: Date, required: true, default: Date.now },
+    lastActiveAt: { type: Date, required: true, default: Date.now },
+    revokedAt: Date,
+    revokedBy: String
+  },
+  { timestamps: true }
+);
+adminDeviceSchema.index(
+  { adminKey: 1, slot: 1 },
+  { unique: true, partialFilterExpression: { status: 'active' }, name: 'uniq_active_admin_device_slot' }
+);
+adminDeviceSchema.index({ adminKey: 1, status: 1, registeredAt: -1 });
+adminDeviceSchema.index({ adminKey: 1, registeredAt: -1 });
+
+const adminSecurityEventSchema = new mongoose.Schema(
+  {
+    adminId: { type: String, required: true },
+    type: { type: String, enum: ['device_registered', 'device_revoked', 'device_recovery'], required: true },
+    deviceId: { type: ObjectId },
+    deviceName: { type: String, maxlength: 160 },
+    browser: { type: String, maxlength: 80 },
+    operatingSystem: { type: String, maxlength: 80 },
+    message: { type: String, required: true, maxlength: 240 }
+  },
+  { timestamps: true }
+);
+adminSecurityEventSchema.index({ adminId: 1, createdAt: -1 });
 
 // ─── AdminAuditLog ────────────────────────────────────────────────────────────
 const auditLogSchema = new mongoose.Schema(
@@ -242,6 +282,25 @@ const passwordResetSchema = new mongoose.Schema(
 );
 passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
+const emailVerificationChallengeSchema = new mongoose.Schema(
+  {
+    emailHash: { type: String, required: true, unique: true, select: false },
+    sessionHash: { type: String, required: true, unique: true, select: false },
+    otpHash: { type: String, select: false },
+    codeCreatedAt: { type: Date, required: true },
+    expiresAt: { type: Date, required: true },
+    resendAfter: { type: Date, required: true },
+    attempts: { type: Number, default: 0, min: 0, max: 5 },
+    sendCount: { type: Number, default: 1, min: 1 },
+    windowStartedAt: { type: Date, required: true },
+    verifiedAt: Date,
+    consumedAt: Date,
+    purgeAt: { type: Date, required: true }
+  },
+  { timestamps: true }
+);
+emailVerificationChallengeSchema.index({ purgeAt: 1 }, { expireAfterSeconds: 0 });
+
 export const User = mongoose.model('User', userSchema);
 export const Company = mongoose.model('Company', companySchema);
 export const Project = mongoose.model('Project', projectSchema);
@@ -252,5 +311,8 @@ export const Transaction = mongoose.model('Transaction', transactionSchema);
 export const Notification = mongoose.model('Notification', notificationSchema);
 export const NotificationReceipt = mongoose.model('NotificationReceipt', notificationReceiptSchema);
 export const AdminSession = mongoose.model('AdminSession', adminSessionSchema);
+export const AdminDevice = mongoose.model('AdminDevice', adminDeviceSchema);
+export const AdminSecurityEvent = mongoose.model('AdminSecurityEvent', adminSecurityEventSchema);
 export const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 export const PasswordReset = mongoose.model('PasswordReset', passwordResetSchema);
+export const EmailVerificationChallenge = mongoose.model('EmailVerificationChallenge', emailVerificationChallengeSchema);

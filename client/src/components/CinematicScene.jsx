@@ -4,6 +4,7 @@ export default function CinematicScene({ className = '' }) {
   return (
     <div className={`cinematic-scene ${className}`.trim()} aria-hidden="true">
       <div className="cinematic-starfield" />
+      <div className="cinematic-hero-ambient" />
       <div className="cinematic-stage-flare" />
       <div className="cinematic-grid" />
       <div className="cinematic-fog cinematic-fog-left" />
